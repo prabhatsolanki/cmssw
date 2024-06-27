@@ -28,8 +28,23 @@
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 #include "DataFormats/TrackerRecHit2D/interface/MTDTrackingRecHit.h"
 
+
+#include "DataFormats/Common/interface/Ptr.h"
+#include "DataFormats/Common/interface/PtrVector.h"
+#include "DataFormats/Common/interface/RefProd.h"
+#include "DataFormats/Common/interface/Ref.h"
+#include "DataFormats/Common/interface/RefVector.h"
+
+#include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
+#include "SimDataFormats/Associations/interface/TrackToTrackingParticleAssociator.h"
+#include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
+#include "SimDataFormats/TrackingAnalysis/interface/TrackingVertexContainer.h"
+#include "SimDataFormats/Associations/interface/MtdSimLayerClusterToTPAssociatorBaseImpl.h"
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimLayerCluster.h"
 #include "SimDataFormats/Associations/interface/MtdRecoClusterToSimLayerClusterAssociationMap.h"
+#include "SimDataFormats/Associations/interface/MtdSimLayerClusterToRecoClusterAssociationMap.h"
+#include "SimDataFormats/Associations/interface/MtdSimLayerClusterToTPAssociatorBaseImpl.h"
+
 #include "SimDataFormats/CrossingFrame/interface/CrossingFrame.h"
 #include "SimDataFormats/CrossingFrame/interface/MixCollection.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
@@ -68,6 +83,7 @@ private:
   const std::string folder_;
   const double hitMinEnergy_;
   const bool optionalPlots_;
+  const bool truthMatchingPlots_;
   const bool uncalibRecHitsPlots_;
   const double hitMinAmplitude_;
 
@@ -77,12 +93,69 @@ private:
   edm::EDGetTokenT<FTLClusterCollection> btlRecCluToken_;
   edm::EDGetTokenT<MTDTrackingDetSetVector> mtdTrackingHitToken_;
   edm::EDGetTokenT<MtdRecoClusterToSimLayerClusterAssociationMap> r2sAssociationMapToken_;
+  edm::EDGetTokenT<reco::SimToTPCollectionMtd> sim2TPAssociationMapToken_;
+
+
+  edm::EDGetTokenT<std::vector<MtdSimLayerCluster>> mtdSimLayerClustersToken_;
+  edm::EDGetTokenT<MtdSimLayerClusterToRecoClusterAssociationMap> s2rAssociationMapToken_;
+  edm::EDGetTokenT<reco::TPToSimCollectionMtd> tp2SimAssociationMapToken_;
+  edm::EDGetTokenT<reco::RecoToSimCollection> recoToSimAssociationToken_;
+  edm::EDGetTokenT<TrackingParticleCollection> trackingParticleCollectionToken_;
+
 
   const edm::ESGetToken<MTDGeometry, MTDDigiGeometryRecord> mtdgeoToken_;
   const edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;
   const edm::ESGetToken<MTDClusterParameterEstimator, MTDCPERecord> cpeToken_;
 
   // --- histograms declaration
+
+MonitorElement* meTimeDiff_direct_direct;
+MonitorElement* meTimeDiff_direct_secondary;
+MonitorElement* meTimeDiff_direct_looper;
+MonitorElement* meTimeDiff_direct_backscattered;
+MonitorElement* meTimeDiff_direct_all;
+
+MonitorElement* meSpatialDiff_direct_direct;
+MonitorElement* meSpatialDiff_direct_secondary;
+MonitorElement* meSpatialDiff_direct_looper;
+MonitorElement* meSpatialDiff_direct_backscattered;
+MonitorElement* meSpatialDiff_direct_all;
+
+MonitorElement* meMultiplicity_all;
+MonitorElement* meMultiplicity_direct;
+MonitorElement* meMultiplicity_secondary;
+MonitorElement* meMultiplicity_looper;
+MonitorElement* meMultiplicity_backscattered;
+
+
+MonitorElement* meMultiplicity_all_nC;
+MonitorElement* meMultiplicity_direct_nC;
+MonitorElement* meMultiplicity_secondary_nC;
+MonitorElement* meMultiplicity_looper_nC;
+MonitorElement* meMultiplicity_backscattered_nC;
+
+
+MonitorElement* meMultiplicity_combined_01;
+MonitorElement* meMultiplicity_combined_02;
+MonitorElement* meMultiplicity_combined_03;
+MonitorElement* meMultiplicity_combined_012;
+MonitorElement* meMultiplicity_combined_013;
+MonitorElement* meMultiplicity_combined_023;
+MonitorElement* meMultiplicity_combined_0123;
+
+MonitorElement* meDx;
+MonitorElement* meDy;
+MonitorElement* meDz;
+MonitorElement* meDeta;
+MonitorElement* meDphi;
+
+MonitorElement* meDx_dy;
+MonitorElement* meDeta_dphi;
+MonitorElement* meDx_dz;
+MonitorElement* meDy_dz;
+MonitorElement* meDeta_dz;
+
+
 
   MonitorElement* meNevents_;
 
@@ -295,6 +368,7 @@ BtlLocalRecoValidation::BtlLocalRecoValidation(const edm::ParameterSet& iConfig)
     : folder_(iConfig.getParameter<std::string>("folder")),
       hitMinEnergy_(iConfig.getParameter<double>("HitMinimumEnergy")),
       optionalPlots_(iConfig.getParameter<bool>("optionalPlots")),
+      truthMatchingPlots_(iConfig.getParameter<bool>("truthMatchingPlots")),
       uncalibRecHitsPlots_(iConfig.getParameter<bool>("UncalibRecHitsPlots")),
       hitMinAmplitude_(iConfig.getParameter<double>("HitMinimumAmplitude")),
       mtdgeoToken_(esConsumes<MTDGeometry, MTDDigiGeometryRecord>()),
@@ -308,6 +382,23 @@ BtlLocalRecoValidation::BtlLocalRecoValidation(const edm::ParameterSet& iConfig)
   mtdTrackingHitToken_ = consumes<MTDTrackingDetSetVector>(iConfig.getParameter<edm::InputTag>("trkHitTag"));
   r2sAssociationMapToken_ = consumes<MtdRecoClusterToSimLayerClusterAssociationMap>(
       iConfig.getParameter<edm::InputTag>("r2sAssociationMapTag"));
+  sim2TPAssociationMapToken_ =
+      consumes<reco::SimToTPCollectionMtd>(iConfig.getParameter<edm::InputTag>("sim2TPAssociationMapTag"));
+
+  
+  s2rAssociationMapToken_ = consumes<MtdSimLayerClusterToRecoClusterAssociationMap>(
+      iConfig.getParameter<edm::InputTag>("s2rAssociationMapTag"));
+
+  tp2SimAssociationMapToken_ =
+      consumes<reco::TPToSimCollectionMtd>(iConfig.getParameter<edm::InputTag>("tp2SimAssociationMapTag"));
+  mtdSimLayerClustersToken_ =
+      consumes<std::vector<MtdSimLayerCluster>>(iConfig.getParameter<edm::InputTag>("mtdSimLayerClustersTag"));
+  trackingParticleCollectionToken_ =
+      consumes<TrackingParticleCollection>(iConfig.getParameter<edm::InputTag>("SimTag"));
+  recoToSimAssociationToken_ =
+      consumes<reco::RecoToSimCollection>(iConfig.getParameter<edm::InputTag>("TPtoRecoTrackAssocTag"));
+
+
 }
 
 BtlLocalRecoValidation::~BtlLocalRecoValidation() {}
@@ -330,7 +421,13 @@ void BtlLocalRecoValidation::analyze(const edm::Event& iEvent, const edm::EventS
   auto btlSimHitsHandle = makeValid(iEvent.getHandle(btlSimHitsToken_));
   auto btlRecCluHandle = makeValid(iEvent.getHandle(btlRecCluToken_));
   auto mtdTrkHitHandle = makeValid(iEvent.getHandle(mtdTrackingHitToken_));
-  const auto& r2sAssociationMap = iEvent.get(r2sAssociationMapToken_);
+
+  const auto &r2sAssociationMap = iEvent.get(r2sAssociationMapToken_);
+  const auto &s2rAssociationMap = iEvent.get(s2rAssociationMapToken_);
+  const auto &sim2TPAssociationMap = iEvent.get(sim2TPAssociationMapToken_);
+  const auto& tp2SimAssociationMap = iEvent.get(tp2SimAssociationMapToken_);
+
+
   MixCollection<PSimHit> btlSimHits(btlSimHitsHandle.product());
 
 #ifdef EDM_ML_DEBUG
@@ -346,6 +443,216 @@ void BtlLocalRecoValidation::analyze(const edm::Event& iEvent, const edm::EventS
     }
   }
 #endif
+
+// ------- TP-SIM-RECO
+
+if(truthMatchingPlots_){
+
+auto TPHandle = iEvent.getHandle(trackingParticleCollectionToken_);
+std::vector<TrackingParticle> trackingParticle = *TPHandle;
+edm::Ref<TrackingParticleCollection>::key_type TPIndex = 0;
+    for (const auto &TP : trackingParticle) {
+        edm::LogVerbatim("TrackExtenderWithMTDValid") << "   TP.size " <<  TP.g4Tracks().size() << std::endl;
+
+        edm::Ref<TrackingParticleCollection> TPRef = edm::Ref<TrackingParticleCollection>(TPHandle, TPIndex); 
+        auto simClustersRefs = tp2SimAssociationMap.find(TPRef);
+        const bool withMTD = (simClustersRefs != tp2SimAssociationMap.end());
+
+        if (withMTD) { 
+            auto tpRef = simClustersRefs->key;
+            auto& mtdSimClusters = simClustersRefs->val;
+
+            // Filter simClusters that have associated BTL recoClusters
+
+            using SimClusterType = typename std::remove_reference<decltype(mtdSimClusters)>::type::value_type;
+            std::vector<SimClusterType> filteredSimClusters;
+            for (const auto& mtdSimClusterRef : mtdSimClusters) {
+                auto it = std::find_if(s2rAssociationMap.begin(),
+                                       s2rAssociationMap.end(),
+                                       [&](const std::pair<MtdSimLayerClusterRef, std::vector<FTLClusterRef>> &p) {
+                                         return p.first == mtdSimClusterRef;
+                                       });
+
+                if ((it != s2rAssociationMap.end()) && (!it->second.empty())) {
+                    std::vector<FTLClusterRef> recoClustersRefsAll = (*it).second;
+                    MTDDetId clusIdFromRefAll = recoClustersRefsAll[0]->id();
+                    if (clusIdFromRefAll.mtdSubDetector() == MTDDetId::BTL){
+                        filteredSimClusters.push_back(mtdSimClusterRef);
+                        }
+                }
+            }
+              
+           if(!filteredSimClusters.empty()) {
+
+            // Multiplicity of different types of hits irrespective of whether there is direct hit or not   
+             
+            int directMultiplicity_nC = 0;
+            int secondaryMultiplicity_nC = 0;
+            int looperMultiplicity_nC = 0;
+            int backscatteredMultiplicity_nC = 0;
+
+            for (const auto& simCluster : filteredSimClusters) {
+
+                        switch (simCluster->trackIdOffset()) {
+                            case 0:
+                                directMultiplicity_nC++;
+                                break;
+                            case 1:
+                                secondaryMultiplicity_nC++;
+                                break;
+                            case 2:
+                                looperMultiplicity_nC++;
+                                break;
+                            case 3:
+                                backscatteredMultiplicity_nC++;
+                                break;
+                        }
+                  
+            }
+
+            meMultiplicity_all_nC->Fill(directMultiplicity_nC + secondaryMultiplicity_nC
+                                         + looperMultiplicity_nC + backscatteredMultiplicity_nC);
+            meMultiplicity_direct_nC->Fill(directMultiplicity_nC);
+            meMultiplicity_secondary_nC->Fill(secondaryMultiplicity_nC);
+            meMultiplicity_looper_nC->Fill(looperMultiplicity_nC);
+            meMultiplicity_backscattered_nC->Fill(backscatteredMultiplicity_nC);
+            
+
+//////////////////////////////////////////////////////////////
+
+            // Sort filteredSimClusters by time
+            std::sort(filteredSimClusters.begin(), filteredSimClusters.end(), [](const auto& a, const auto& b) {
+                return a->simLCTime() < b->simLCTime();
+            });
+
+            // Find the first direct hit
+            auto directHit = std::find_if(filteredSimClusters.begin(), filteredSimClusters.end(), [](const auto& simCluster) {
+                return simCluster->trackIdOffset() == 0;
+            });
+            // At-least one direct hit
+            if (directHit != filteredSimClusters.end()) {
+                float directTime = (*directHit)->simLCTime();
+                auto simClusLocalPos = (*directHit)->simLCPos();
+
+                const auto& directRecoClustersRefs = std::find_if(s2rAssociationMap.begin(), s2rAssociationMap.end(),
+                    [&](const std::pair<MtdSimLayerClusterRef, std::vector<FTLClusterRef>>& p) {
+                        return p.first == *directHit;
+                    })->second;
+
+                MTDDetId clusIdFromRefD = directRecoClustersRefs[0]->id();
+                DetId detIdObject(clusIdFromRefD);
+                const auto& genericDet = geom->idToDetUnit(detIdObject);
+                const auto& directGlobalPos = genericDet->toGlobal(simClusLocalPos);
+
+                int directMultiplicity = 0;
+                int secondaryMultiplicity = 0;
+                int looperMultiplicity = 0;
+                int backscatteredMultiplicity = 0;
+
+                for (const auto& simCluster : filteredSimClusters) {
+                    if ((simCluster == *directHit)) {
+                        directMultiplicity++;
+                        continue;
+                      }
+                    
+                    float timeDiff = simCluster->simLCTime() - directTime;
+                    auto localPos = simCluster->simLCPos();
+                    
+                    const auto& recoClustersRefs = std::find_if(s2rAssociationMap.begin(), s2rAssociationMap.end(),
+                        [&](const std::pair<MtdSimLayerClusterRef, std::vector<FTLClusterRef>>& p) {
+                            return p.first == simCluster;
+                        })->second;
+
+                    MTDDetId clusIdFromRef = recoClustersRefs[0]->id();
+                    DetId detIdObject(clusIdFromRef);
+                    const auto& genericDet = geom->idToDetUnit(detIdObject);
+                    const auto& globalPos = genericDet->toGlobal(localPos);
+
+                    float dx = globalPos.x() - directGlobalPos.x();
+                    float dy = globalPos.y() - directGlobalPos.y();
+                    float dz = globalPos.z() - directGlobalPos.z();
+                    float deta = globalPos.eta() - directGlobalPos.eta();
+                    float dphi = globalPos.phi() - directGlobalPos.phi();
+
+                    float spatialDiff = sqrt(dx*dx + dy*dy + dz*dz);
+
+                        switch (simCluster->trackIdOffset()) {
+                            case 0:
+                                meTimeDiff_direct_direct->Fill(timeDiff);
+                                meSpatialDiff_direct_direct->Fill(spatialDiff);
+                                directMultiplicity++;
+                                break;
+                            case 1:
+                                meTimeDiff_direct_secondary->Fill(timeDiff);
+                                meSpatialDiff_direct_secondary->Fill(spatialDiff);
+                                secondaryMultiplicity++;
+                                break;
+                            case 2:
+                                meTimeDiff_direct_looper->Fill(timeDiff);
+                                meSpatialDiff_direct_looper->Fill(spatialDiff);
+                                looperMultiplicity++;
+                                break;
+                            case 3:
+                                meTimeDiff_direct_backscattered->Fill(timeDiff);
+                                meSpatialDiff_direct_backscattered->Fill(spatialDiff);
+                                backscatteredMultiplicity++;
+                                break;
+                        }
+
+                        meTimeDiff_direct_all->Fill(timeDiff);
+                        meSpatialDiff_direct_all->Fill(spatialDiff);
+
+                        // Fill 1D histograms for direct vs all categories
+                        meDx->Fill(dx);
+                        meDy->Fill(dy);
+                        meDz->Fill(dz);
+                        meDeta->Fill(deta);
+                        meDphi->Fill(dphi);
+
+                        // Fill 2D histograms for direct vs all categories
+                        meDx_dy->Fill(dx, dy);
+                        meDeta_dphi->Fill(deta, dphi);
+                        meDx_dz->Fill(dx, dz);
+                        meDy_dz->Fill(dy, dz);
+                        meDeta_dz->Fill(deta, dz);
+                    
+                }
+                meMultiplicity_all->Fill(directMultiplicity + secondaryMultiplicity +
+                                         looperMultiplicity + backscatteredMultiplicity);
+                meMultiplicity_direct->Fill(directMultiplicity);
+                meMultiplicity_secondary->Fill(secondaryMultiplicity);
+                meMultiplicity_looper->Fill(looperMultiplicity);
+                meMultiplicity_backscattered->Fill(backscatteredMultiplicity);
+
+                // Fill combined multiplicity histograms
+                if (secondaryMultiplicity > 0) {
+                    meMultiplicity_combined_01->Fill(directMultiplicity, secondaryMultiplicity);
+                }
+                if (looperMultiplicity > 0) {
+                    meMultiplicity_combined_02->Fill(directMultiplicity, looperMultiplicity);
+                }
+                if (backscatteredMultiplicity > 0) {
+                    meMultiplicity_combined_03->Fill(directMultiplicity, backscatteredMultiplicity);
+                }
+                if (secondaryMultiplicity > 0 && looperMultiplicity > 0) {
+                    meMultiplicity_combined_012->Fill(directMultiplicity, secondaryMultiplicity + looperMultiplicity);
+                }
+                if (secondaryMultiplicity > 0 && backscatteredMultiplicity > 0) {
+                    meMultiplicity_combined_013->Fill(directMultiplicity, secondaryMultiplicity + backscatteredMultiplicity);
+                }
+                if (looperMultiplicity > 0 && backscatteredMultiplicity > 0) {
+                    meMultiplicity_combined_023->Fill(directMultiplicity, looperMultiplicity + backscatteredMultiplicity);
+                }
+                if (secondaryMultiplicity > 0 && looperMultiplicity > 0 && backscatteredMultiplicity > 0) {
+                    meMultiplicity_combined_0123->Fill(directMultiplicity, secondaryMultiplicity + looperMultiplicity + backscatteredMultiplicity);
+                }
+            }
+        }
+      }  
+        TPIndex++;
+    }
+}
+
 
   // --- Loop over the BTL SIM hits
   std::unordered_map<uint32_t, MTDHit> m_btlSimHits;
@@ -934,6 +1241,52 @@ void BtlLocalRecoValidation::bookHistograms(DQMStore::IBooker& ibook,
   ibook.setCurrentFolder(folder_);
 
   // --- histograms booking
+
+meTimeDiff_direct_direct = ibook.book1D("BtlTimeDiff_direct_direct", "Time Difference: Direct vs Direct", 100, -20, 20);
+meTimeDiff_direct_secondary = ibook.book1D("BtlTimeDiff_direct_secondary", "Time Difference: Direct vs Secondary", 100, -20, 20);
+meTimeDiff_direct_looper = ibook.book1D("BtlTimeDiff_direct_looper", "Time Difference: Direct vs Looper", 100, -20, 20);
+meTimeDiff_direct_backscattered = ibook.book1D("BtlTimeDiff_direct_backscattered", "Time Difference: Direct vs Backscattered", 100, -20, 20);
+meTimeDiff_direct_all = ibook.book1D("BtlTimeDiff_direct_all", "Time Difference: Direct vs All", 100, -20, 20);
+
+meSpatialDiff_direct_direct = ibook.book1D("BtlSpatialDiff_direct_direct", "Spatial Difference: Direct vs Direct", 100, 0, 70);
+meSpatialDiff_direct_secondary = ibook.book1D("BtlSpatialDiff_direct_secondary", "Spatial Difference: Direct vs Secondary", 100, 0, 70);
+meSpatialDiff_direct_looper = ibook.book1D("BtlSpatialDiff_direct_looper", "Spatial Difference: Direct vs Looper", 100, 0, 70);
+meSpatialDiff_direct_backscattered = ibook.book1D("BtlSpatialDiff_direct_backscattered", "Spatial Difference: Direct vs Backscattered", 100, 0, 70);
+meSpatialDiff_direct_all = ibook.book1D("BtlSpatialDiff_direct_all", "Spatial Difference: Direct vs All", 100, 0, 70);
+
+meMultiplicity_all = ibook.book1D("BtlMultiplicity_all", "Multiplicity of All Hits (At-least 1 Direct Hit)", 20, 0, 20);
+meMultiplicity_direct = ibook.book1D("BtlMultiplicity_direct", "Multiplicity of Direct Hits (At-least 1 Direct Hit)", 20, 0, 20);
+meMultiplicity_secondary = ibook.book1D("BtlMultiplicity_secondary", "Multiplicity of Secondary Hits (At-least 1 Direct Hit)", 20, 0, 20);
+meMultiplicity_looper = ibook.book1D("BtlMultiplicity_looper", "Multiplicity of Looper Hits (At-least 1 Direct Hit)", 20, 0, 20);
+meMultiplicity_backscattered = ibook.book1D("BtlMultiplicity_backscattered", "Multiplicity of Backscattered Hits (At-least 1 Direct Hit)", 20, 0, 20);
+
+meMultiplicity_all_nC = ibook.book1D("BtlMultiplicity_all_nC", "Multiplicity of All Hits", 20, 0, 20);
+meMultiplicity_direct_nC = ibook.book1D("BtlMultiplicity_direct_nC", "Multiplicity of Direct Hits", 20, 0, 20);
+meMultiplicity_secondary_nC = ibook.book1D("BtlMultiplicity_secondary_nC", "Multiplicity of Secondary Hits", 20, 0, 20);
+meMultiplicity_looper_nC = ibook.book1D("BtlMultiplicity_looper_nC", "Multiplicity of Looper Hits", 20, 0, 20);
+meMultiplicity_backscattered_nC = ibook.book1D("BtlMultiplicity_backscattered_nC", "Multiplicity of Backscattered Hits", 20, 0, 20);
+
+meMultiplicity_combined_01 = ibook.book2D("BtlMultiplicity_combined_01", "Multiplicity: Direct (0) vs Secondary (1)", 15, 0, 15, 15, 0, 15);
+meMultiplicity_combined_02 = ibook.book2D("BtlMultiplicity_combined_02", "Multiplicity: Direct (0) vs Looper (2)", 15, 0, 15, 15, 0, 15);
+meMultiplicity_combined_03 = ibook.book2D("BtlMultiplicity_combined_03", "Multiplicity: Direct (0) vs Backscattered (3)", 15, 0, 15, 15, 0, 15);
+meMultiplicity_combined_012 = ibook.book2D("BtlMultiplicity_combined_012", "Multiplicity: Direct (0) vs Secondary (1) vs Looper (2)", 15, 0, 15, 15, 0, 15);
+meMultiplicity_combined_013 = ibook.book2D("BtlMultiplicity_combined_013", "Multiplicity: Direct (0) vs Secondary (1) vs Backscattered (3)", 15, 0, 15, 15, 0, 15);
+meMultiplicity_combined_023 = ibook.book2D("BtlMultiplicity_combined_023", "Multiplicity: Direct (0) vs Looper (2) vs Backscattered (3)", 15, 0, 15, 15, 0, 15);
+meMultiplicity_combined_0123 = ibook.book2D("BtlMultiplicity_combined_0123", "Multiplicity: Direct (0) vs Secondary (1) vs Looper (2) vs Backscattered (3)", 15, 0, 15, 15, 0, 15);
+
+
+meDx = ibook.book1D("BtlDx_direct_all", "Difference in x: Direct vs All", 100, -70, 70);
+meDy = ibook.book1D("BtlDy_direct_all", "Difference in y: Direct vs All", 100, -70, 70);
+meDz = ibook.book1D("BtlDz_direct_all", "Difference in z: Direct vs All", 100, -70, 70);
+meDeta = ibook.book1D("BtlDeta_direct_all", "Difference in eta: Direct vs All", 100, -0.75, 0.75);
+meDphi = ibook.book1D("BtlDphi_direct_all", "Difference in phi: Direct vs All", 100, -0.75, 0.75);
+
+meDx_dy = ibook.book2D("BtlDx_dy_direct_all", "Difference in x vs y: Direct vs All", 100, -70, 70, 100, -70, 70);
+meDeta_dphi = ibook.book2D("BtlDeta_dphi_direct_all", "Difference in eta vs phi: Direct vs All", 100, -0.75, 0.75, 100, -0.5, 0.5);
+meDx_dz = ibook.book2D("BtlDx_dz_direct_all", "Difference in x vs z: Direct vs All", 100, -70, 70, 100, -70, 70);
+meDy_dz = ibook.book2D("BtlDy_dz_direct_all", "Difference in y vs z: Direct vs All", 100, -70, 70, 100, -70, 70);
+meDeta_dz = ibook.book2D("BtlDeta_dz_direct_all", "Difference in eta vs z: Direct vs All", 100, -0.75, 0.75, 100, -70, 70);
+
 
   meNevents_ = ibook.book1D("BtlNevents", "Number of events", 1, 0., 1.);
 
@@ -1673,8 +2026,19 @@ void BtlLocalRecoValidation::fillDescriptions(edm::ConfigurationDescriptions& de
   desc.add<edm::InputTag>("recCluTag", edm::InputTag("mtdClusters", "FTLBarrel"));
   desc.add<edm::InputTag>("trkHitTag", edm::InputTag("mtdTrackingRecHits"));
   desc.add<edm::InputTag>("r2sAssociationMapTag", edm::InputTag("mtdRecoClusterToSimLayerClusterAssociation"));
+  desc.add<edm::InputTag>("sim2TPAssociationMapTag", edm::InputTag("mtdSimLayerClusterToTPAssociation"));
+
+
+  desc.add<edm::InputTag>("s2rAssociationMapTag", edm::InputTag("mtdRecoClusterToSimLayerClusterAssociation"));
+  desc.add<edm::InputTag>("tp2SimAssociationMapTag", edm::InputTag("mtdSimLayerClusterToTPAssociation"));
+  desc.add<edm::InputTag>("mtdSimLayerClustersTag", edm::InputTag("mix", "MergedMtdTruthLC"));
+  desc.add<edm::InputTag>("TPtoRecoTrackAssocTag", edm::InputTag("trackingParticleRecoTrackAsssociation"));
+  desc.add<edm::InputTag>("SimTag", edm::InputTag("mix", "MergedTrackTruth"));
+
+
   desc.add<double>("HitMinimumEnergy", 1.);  // [MeV]
   desc.add<bool>("optionalPlots", false);
+  desc.add<bool>("truthMatchingPlots", true);
   desc.add<bool>("UncalibRecHitsPlots", false);
   desc.add<double>("HitMinimumAmplitude", 30.);  // [pC]
 
