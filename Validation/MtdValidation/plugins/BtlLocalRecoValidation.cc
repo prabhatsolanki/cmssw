@@ -105,6 +105,9 @@ private:
 
   // --- histograms declaration
 
+  MonitorElement* meTp_to_sim_direct;
+  MonitorElement* meSim_to_reco_direct;
+
   MonitorElement* meTimeDiff_direct_direct;
   MonitorElement* meTimeDiff_direct_secondary;
   MonitorElement* meTimeDiff_direct_looper;
@@ -136,11 +139,13 @@ private:
   MonitorElement* meMultiplicity_combined_013;
   MonitorElement* meMultiplicity_combined_023;
   MonitorElement* meMultiplicity_combined_0123;
-  
+
+
   MonitorElement* meDz_direct_all;
   MonitorElement* meDeta_direct_all;
   MonitorElement* meDphi_direct_all;
-  
+
+
   MonitorElement* meDeta_dphi_direct_all;
   MonitorElement* meDeta_dz_direct_all;
   MonitorElement* meDR_dz_direct_all;
@@ -439,14 +444,49 @@ void BtlLocalRecoValidation::analyze(const edm::Event& iEvent, const edm::EventS
     auto simClustersRefs = tp2SimAssociationMap.find(TPRef);
     const bool withMTD = (simClustersRefs != tp2SimAssociationMap.end());
 
+    int hasDirectSimClusterInBTL = 0;
+    int hasOtherSimClusterInBTL = 0;
+
     if (withMTD) {
       auto tpRef = simClustersRefs->key;
       auto& mtdSimClusters = simClustersRefs->val;
+
+      // check if it has direct BTL cluster
+
+      for (const auto& mtdSimClusterRef : mtdSimClusters) {
+        std::vector<std::pair<uint32_t, std::pair<uint8_t, uint8_t>>> detIdsAndRows =
+            mtdSimClusterRef->detIds_and_rows();
+        std::vector<uint32_t> detIds(detIdsAndRows.size());
+        std::transform(detIdsAndRows.begin(),
+                       detIdsAndRows.end(),
+                       detIds.begin(),
+                       [](const std::pair<uint32_t, std::pair<uint8_t, uint8_t>>& pair) { return pair.first; });
+
+        bool isBTL = (MTDDetId(detIds[0]).mtdSubDetector() == MTDDetId::BTL);
+
+        if (mtdSimClusterRef->trackIdOffset() == 0 && isBTL) {  // Check for direct hit
+          hasDirectSimClusterInBTL++;
+        } else if (mtdSimClusterRef->trackIdOffset() != 0 && isBTL) {
+          hasOtherSimClusterInBTL++;
+        }
+      }
+
+      // Fill histogram for TP to SimCluster association (direct hits in BTL)
+
+      if (hasDirectSimClusterInBTL > 0) {
+        meTp_to_sim_direct->Fill(1);
+      } else if (hasOtherSimClusterInBTL > 0) {
+        meTp_to_sim_direct->Fill(0);
+      }
 
       // Filter simClusters that have associated BTL recoClusters
 
       using SimClusterType = typename std::remove_reference<decltype(mtdSimClusters)>::type::value_type;
       std::vector<SimClusterType> filteredSimClusters;
+
+      int simToRecoFoundDirect = 0;
+      int simToRecoFoundOther = 0;
+
       for (const auto& mtdSimClusterRef : mtdSimClusters) {
         auto its2dr = s2rAssociationMap.equal_range(mtdSimClusterRef);
         if (((its2dr.first) != s2rAssociationMap.end()) && (!(its2dr.first)->second.empty())) {
@@ -454,8 +494,19 @@ void BtlLocalRecoValidation::analyze(const edm::Event& iEvent, const edm::EventS
           MTDDetId clusIdFromRefAll = recoClustersRefsAll[0]->id();
           if (clusIdFromRefAll.mtdSubDetector() == MTDDetId::BTL) {
             filteredSimClusters.push_back(mtdSimClusterRef);
+            if (mtdSimClusterRef->trackIdOffset() == 0) {
+              simToRecoFoundDirect++;
+            } else if (mtdSimClusterRef->trackIdOffset() != 0) {
+              simToRecoFoundOther++;
+            }
           }
         }
+      }
+
+      if (simToRecoFoundDirect > 0) {
+        meSim_to_reco_direct->Fill(1);
+      } else if (simToRecoFoundOther > 0) {
+        meSim_to_reco_direct->Fill(0);
       }
 
       if (!filteredSimClusters.empty()) {
@@ -535,11 +586,13 @@ void BtlLocalRecoValidation::analyze(const edm::Event& iEvent, const edm::EventS
             DetId detIdObject(clusIdFromRef);
             const auto& genericDet = geom->idToDetUnit(detIdObject);
             const auto& globalPos = genericDet->toGlobal(localPos);
+
             
             float dz = globalPos.z() - directGlobalPos.z();
             float deta = globalPos.eta() - directGlobalPos.eta();
             float dphi = globalPos.phi() - directGlobalPos.phi();
             float dR = sqrt(deta * deta + dphi * dphi);
+
 
             switch (simCluster->trackIdOffset()) {
               case 0:
@@ -566,10 +619,14 @@ void BtlLocalRecoValidation::analyze(const edm::Event& iEvent, const edm::EventS
 
             meTimeDiff_direct_all->Fill(timeDiff);
             meDR_direct_all->Fill(dR);
+
+        
+      
             meDz_direct_all->Fill(dz);
             meDeta_direct_all->Fill(deta);
             meDphi_direct_all->Fill(dphi);
-         
+            
+
             // Fill 2D histograms for direct vs all categories
             if (optionalPlots_) {
               meDeta_dphi_direct_all->Fill(deta, dphi);
@@ -1203,23 +1260,25 @@ void BtlLocalRecoValidation::bookHistograms(DQMStore::IBooker& ibook,
 
   // --- histograms booking
 
-  meTimeDiff_direct_direct =
-      ibook.book1D("BtlTimeDiff_direct_direct", "Time Difference: Direct vs Direct", 100, -5, 20);
+  meTp_to_sim_direct =
+      ibook.book1D("BtlTp_to_sim_direct", "TP to SimCluster Association (Direct Hits in BTL)", 2, 0, 2);
+  meSim_to_reco_direct =
+      ibook.book1D("BtlSim_to_reco_direct", "SimCluster to RecoCluster Association (Direct Hits in BTL)", 2, 0, 2);
+  meTimeDiff_direct_direct = ibook.book1D("BtlTimeDiff_direct_direct", "Time Difference: Direct vs Direct", 50, -2, 20);
   meTimeDiff_direct_secondary =
-      ibook.book1D("BtlTimeDiff_direct_secondary", "Time Difference: Direct vs Secondary", 100, -5, 20);
-  meTimeDiff_direct_looper =
-      ibook.book1D("BtlTimeDiff_direct_looper", "Time Difference: Direct vs Looper", 100, -5, 20);
+      ibook.book1D("BtlTimeDiff_direct_secondary", "Time Difference: Direct vs Secondary", 50, -2, 20);
+  meTimeDiff_direct_looper = ibook.book1D("BtlTimeDiff_direct_looper", "Time Difference: Direct vs Looper", 50, -2, 20);
   meTimeDiff_direct_backscattered =
-      ibook.book1D("BtlTimeDiff_direct_backscattered", "Time Difference: Direct vs Backscattered", 100, -5, 20);
-  meTimeDiff_direct_all = ibook.book1D("BtlTimeDiff_direct_all", "Time Difference: Direct vs All", 100, -5, 20);
+      ibook.book1D("BtlTimeDiff_direct_backscattered", "Time Difference: Direct vs Backscattered", 50, -2, 20);
+  meTimeDiff_direct_all = ibook.book1D("BtlTimeDiff_direct_all", "Time Difference: Direct vs All", 50, -2, 20);
 
-  meDR_direct_direct = ibook.book1D("BtlDR_direct_direct", "Spatial Difference (dR): Direct vs Direct", 100, 0, 0.6);
+  meDR_direct_direct = ibook.book1D("BtlDR_direct_direct", "Spatial Difference (dR): Direct vs Direct", 50, 0, 0.6);
   meDR_direct_secondary =
-      ibook.book1D("BtlDR_direct_secondary", "Spatial Difference (dR): Direct vs Secondary", 100, 0, 0.6);
-  meDR_direct_looper = ibook.book1D("BtlDR_direct_looper", "Spatial Difference (dR): Direct vs Looper", 100, 0, 0.6);
+      ibook.book1D("BtlDR_direct_secondary", "Spatial Difference (dR): Direct vs Secondary", 50, 0, 0.6);
+  meDR_direct_looper = ibook.book1D("BtlDR_direct_looper", "Spatial Difference (dR): Direct vs Looper", 50, 0, 0.6);
   meDR_direct_backscattered =
-      ibook.book1D("BtlDR_direct_backscattered", "Spatial Difference (dR): Direct vs Backscattered", 100, 0, 0.6);
-  meDR_direct_all = ibook.book1D("BtlDR_direct_all", "Spatial Difference (dR): Direct vs All", 100, 0, 0.6);
+      ibook.book1D("BtlDR_direct_backscattered", "Spatial Difference (dR): Direct vs Backscattered", 50, 0, 0.6);
+  meDR_direct_all = ibook.book1D("BtlDR_direct_all", "Spatial Difference (dR): Direct vs All", 50, 0, 0.6);
 
   meMultiplicity_all =
       ibook.book1D("BtlMultiplicity_all", "Multiplicity of All Hits (At-least 1 Direct Hit)", 20, 0, 20);
@@ -1239,11 +1298,6 @@ void BtlLocalRecoValidation::bookHistograms(DQMStore::IBooker& ibook,
   meMultiplicity_looper_nC = ibook.book1D("BtlMultiplicity_looper_nC", "Multiplicity of Looper Hits", 20, 0, 20);
   meMultiplicity_backscattered_nC =
       ibook.book1D("BtlMultiplicity_backscattered_nC", "Multiplicity of Backscattered Hits", 20, 0, 20);
-
-  meDz_direct_all = ibook.book1D("BtlDz_direct_all", "Difference in z: Direct vs All", 100, -70, 70);
-  meDeta_direct_all = ibook.book1D("BtlDeta_direct_all", "Difference in eta: Direct vs All", 100, -0.6, 0.6);
-  meDphi_direct_all = ibook.book1D("BtlDphi_direct_all", "Difference in phi: Direct vs All", 100, -0.6, 0.6);
-
   if (optionalPlots_) {
     meMultiplicity_combined_01 =
         ibook.book2D("BtlMultiplicity_combined_01", "Multiplicity: Direct (0) vs Secondary (1)", 15, 0, 15, 15, 0, 15);
@@ -1278,7 +1332,15 @@ void BtlLocalRecoValidation::bookHistograms(DQMStore::IBooker& ibook,
                      15,
                      0,
                      15);
+  }
 
+
+  meDz_direct_all = ibook.book1D("BtlDz_direct_all", "Difference in z: Direct vs All", 100, -70, 70);
+  meDeta_direct_all = ibook.book1D("BtlDeta_direct_all", "Difference in eta: Direct vs All", 100, -0.6, 0.6);
+  meDphi_direct_all = ibook.book1D("BtlDphi_direct_all", "Difference in phi: Direct vs All", 100, -0.6, 0.6);
+
+
+  if (optionalPlots_) {
     meDeta_dphi_direct_all = ibook.book2D(
         "BtlDeta_dphi_direct_all", "Difference in eta vs phi: Direct vs All", 100, -0.6, 0.6, 100, -0.6, 0.6);
     meDeta_dz_direct_all =
