@@ -5,7 +5,6 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/Common/interface/ValueMap.h"
-
 #include "DQMServices/Core/interface/DQMEDAnalyzer.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 
@@ -66,6 +65,10 @@
 #include "SimDataFormats/CrossingFrame/interface/MixCollection.h"
 #include "SimDataFormats/TrackingHit/interface/PSimHit.h"
 #include "SimDataFormats/Associations/interface/MtdSimLayerClusterToTPAssociatorBaseImpl.h"
+#include "SimDataFormats/CaloAnalysis/interface/MtdSimLayerCluster.h"
+#include "SimDataFormats/Associations/interface/MtdRecoClusterToSimLayerClusterAssociationMap.h"
+#include "SimDataFormats/Associations/interface/MtdSimLayerClusterToRecoClusterAssociationMap.h"
+#include "SimDataFormats/Associations/interface/MtdSimLayerClusterToTPAssociatorBaseImpl.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "SimGeneral/HepPDTRecord/interface/ParticleDataTable.h"
@@ -94,6 +97,7 @@ private:
   const bool mvaRecSel(const reco::TrackBase&, const reco::Vertex&, const double&, const double&);
   const bool mvaGenRecMatch(const HepMC::GenParticle&, const double&, const reco::TrackBase&, const bool&);
   const edm::Ref<std::vector<TrackingParticle>>* getMatchedTP(const reco::TrackBaseRef&);
+  const reco::TrackBaseRef* getMatchedRecoTrack(const edm::Ref<std::vector<TrackingParticle>>&); 
 
   const unsigned long int uniqueId(const uint32_t x, const EncodedEventId& y) {
     const uint64_t a = static_cast<uint64_t>(x);
@@ -139,6 +143,7 @@ private:
   edm::EDGetTokenT<TrackingParticleCollection> trackingParticleCollectionToken_;
   edm::EDGetTokenT<reco::SimToRecoCollection> simToRecoAssociationToken_;
   edm::EDGetTokenT<reco::RecoToSimCollection> recoToSimAssociationToken_;
+  edm::EDGetTokenT<MtdSimLayerClusterToRecoClusterAssociationMap> s2rAssociationMapToken_;
   edm::EDGetTokenT<reco::TPToSimCollectionMtd> tp2SimAssociationMapToken_;
   edm::EDGetTokenT<FTLRecHitCollection> btlRecHitsToken_;
   edm::EDGetTokenT<FTLRecHitCollection> etlRecHitsToken_;
@@ -253,6 +258,19 @@ private:
   MonitorElement* meExtraBTLeneInCone_;
   MonitorElement* meExtraMTDfailExtenderEta_;
   MonitorElement* meExtraMTDfailExtenderPt_;
+
+  MonitorElement* meTPAssoc_;
+  MonitorElement* meSimClusterAssoc_;
+  MonitorElement* meRecoClusterAssoc_;
+
+  MonitorElement* meResRecTpSimRecoBtlPt_;
+  MonitorElement* meResRecTpSimRecoBtlEta_;
+  MonitorElement* meResRecTpSimRecoBtlPhi_;
+
+  MonitorElement* meResRecTpSimRecoEtlPt_;
+  MonitorElement* meResRecTpSimRecoEtlEta_;
+  MonitorElement* meResRecTpSimRecoEtlPhi_;
+
 };
 
 // ------------ constructor and destructor --------------
@@ -272,6 +290,10 @@ MtdTracksValidation::MtdTracksValidation(const edm::ParameterSet& iConfig)
       consumes<reco::SimToRecoCollection>(iConfig.getParameter<edm::InputTag>("TPtoRecoTrackAssoc"));
   recoToSimAssociationToken_ =
       consumes<reco::RecoToSimCollection>(iConfig.getParameter<edm::InputTag>("TPtoRecoTrackAssoc"));
+  s2rAssociationMapToken_ = consumes<MtdSimLayerClusterToRecoClusterAssociationMap>(
+      iConfig.getParameter<edm::InputTag>("s2rAssociationMapTag"));
+
+
   tp2SimAssociationMapToken_ =
       consumes<reco::TPToSimCollectionMtd>(iConfig.getParameter<edm::InputTag>("tp2SimAssociationMapTag"));
   btlRecHitsToken_ = consumes<FTLRecHitCollection>(iConfig.getParameter<edm::InputTag>("btlRecHits"));
@@ -313,7 +335,10 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
   std::unordered_map<uint32_t, MTDHit> m_etlHits;
   std::unordered_map<uint32_t, std::set<unsigned long int>> m_btlTrkPerCell;
   std::unordered_map<uint32_t, std::set<unsigned long int>> m_etlTrkPerCell;
+
   const auto& tp2SimAssociationMap = iEvent.get(tp2SimAssociationMapToken_);
+  const auto& s2rAssociationMap = iEvent.get(s2rAssociationMapToken_);
+
 
   const auto& tMtd = iEvent.get(tmtdToken_);
   const auto& SigmatMtd = iEvent.get(SigmatmtdToken_);
@@ -351,19 +376,224 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
 
   // flag to select events with reco vertex close to true simulated primary vertex, or PV fake (particle guns)
   const bool isGoodVtx = std::abs(primRecoVtx.z() - zsim) < deltaZcut_ || primRecoVtx.isFake();
+    
+/*  
+auto TPHandle = iEvent.getHandle(trackingParticleCollectionToken_);
+if (!TPHandle.isValid()) {
+    std::cerr << "Error: Invalid handle for tracking particles." << std::endl;
+    return;
+}
+
+edm::Ref<TrackingParticleCollection>::key_type TPIndex = 0;
+for (const auto& tp : *TPHandle) {
+    edm::Ref<TrackingParticleCollection> TPPRef(TPHandle, TPIndex);
+
+    const reco::TrackBaseRef* recoTrackRef = getMatchedRecoTrack(TPPRef);
+
+    if (recoTrackRef != nullptr) {
+        // Found a matched reco track for this TP
+        const reco::Track& recoTrack = **recoTrackRef;
+        std::cout << "TP matched to reco track with pt: " << recoTrack.pt() 
+                  << ", eta: " << recoTrack.eta() 
+                  << ", phi: " << recoTrack.phi() 
+                  << ", charge: " << recoTrack.charge() 
+                  << std::endl;
+    } else {
+        // No matched reco track found for this TP
+        std::cout << "TP not matched to any reco track" << std::endl;
+    }
+
+    TPIndex++;
+}
+
+*/
 
   // --- Loop over all RECO tracks ---
   for (const auto& trackGen : *GenRecTrackHandle) {
-    const reco::TrackRef trackref(iEvent.getHandle(GenRecTrackToken_), index);
-    index++;
+            const reco::TrackRef trackref(iEvent.getHandle(GenRecTrackToken_), index);
+            index++;
+            //std::cout << "Track Eta:" << trackGen.eta() << "  Track Charge:" << trackGen.charge() << "   Track PT:" << trackGen.pt() << std::endl;
 
-    if (trackAssoc[trackref] == -1) {
-      LogInfo("mtdTracks") << "Extended track not associated";
-      continue;
-    }
+            if (trackAssoc[trackref] == -1) {
+                LogWarning("MtdTracksValidation") << "Extended track not associated";
+                continue;
+            }
+            
+            const reco::TrackRef mtdTrackref = reco::TrackRef(iEvent.getHandle(RecTrackToken_), trackAssoc[trackref]);
+            const reco::Track& track = *mtdTrackref; 
 
-    const reco::TrackRef mtdTrackref = reco::TrackRef(iEvent.getHandle(RecTrackToken_), trackAssoc[trackref]);
-    const reco::Track& track = *mtdTrackref;
+            // RecoTrack-TP-SIM-RECO Matching
+
+            const reco::TrackBaseRef trkrefa(trackref);
+            auto TPRef = getMatchedTP(trkrefa);
+
+            //const reco::TrackBaseRef* recoTrackRef = getMatchedRecoTrack(*TPRef);
+
+
+            if (TPRef == nullptr) {
+                // Reco track without associated TP
+                meTPAssoc_->Fill(0);  
+            } else {
+                // Reco track with associated TP
+                meTPAssoc_->Fill(1);  
+            }
+            if (TPRef != nullptr){
+
+            auto simClusRefs = tp2SimAssociationMap.find(*TPRef);
+            const bool withS = (simClusRefs != tp2SimAssociationMap.end());
+
+            bool hasDirectSimClusterInBTL = false;
+            bool hasSecSimClusterInBTL = false;
+            bool hasLooperSimClusterInBTL = false;
+            bool hasBackSimClusterInBTL = false;
+            bool hasSimClusterInETL = false;
+
+            bool simToRecoFoundDirect = false;
+            bool simToRecoFoundSec = false;
+            bool simToRecoFoundLooper = false;
+            bool simToRecoFoundBack = false;
+            bool simToRecoFoundETL = false;
+
+            if (withS) {
+                auto& mtdSimClusters = simClusRefs->val;
+
+                for (const auto& mtdSimClusterRef : mtdSimClusters) {  // SimCluster loop
+                    std::vector<std::pair<uint32_t, std::pair<uint8_t, uint8_t>>> detIdsAndRows = mtdSimClusterRef->detIds_and_rows();
+                    std::vector<uint32_t> detIds(detIdsAndRows.size());
+                    std::transform(detIdsAndRows.begin(), detIdsAndRows.end(), detIds.begin(),
+                                   [](const std::pair<uint32_t, std::pair<uint8_t, uint8_t>>& pair) { return pair.first; });
+
+                    bool isBTL = (MTDDetId(detIds[0]).mtdSubDetector() == MTDDetId::BTL);
+                    bool isETL = (MTDDetId(detIds[0]).mtdSubDetector() == MTDDetId::ETL);
+
+                    if (isETL) {  
+                        hasSimClusterInETL = true;
+                    } else if (mtdSimClusterRef->trackIdOffset() == 0 && isBTL) {  
+                        hasDirectSimClusterInBTL = true;
+                    } else if (mtdSimClusterRef->trackIdOffset() == 1 && isBTL) {
+                        hasSecSimClusterInBTL = true;
+                    } else if (mtdSimClusterRef->trackIdOffset() == 2 && isBTL) {
+                        hasLooperSimClusterInBTL = true;
+                    } else if (mtdSimClusterRef->trackIdOffset() == 3 && isBTL) {
+                        hasBackSimClusterInBTL = true;
+                    }
+                }  // End of SimCluster loop
+
+                // Histogram for TP with associated SIM clusters by combined category
+                  if(hasSimClusterInETL) {
+                     meSimClusterAssoc_->Fill(15);
+                  } else if (hasDirectSimClusterInBTL && hasSecSimClusterInBTL && hasLooperSimClusterInBTL && hasBackSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(14);
+                  } else if (hasDirectSimClusterInBTL && hasSecSimClusterInBTL && hasLooperSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(13);
+                  } else if (hasDirectSimClusterInBTL && hasSecSimClusterInBTL && hasBackSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(12);
+                  } else if (hasDirectSimClusterInBTL && hasLooperSimClusterInBTL && hasBackSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(11);
+                  } else if (hasSecSimClusterInBTL && hasLooperSimClusterInBTL && hasBackSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(10);
+                  } else if (hasDirectSimClusterInBTL && hasSecSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(9);
+                  } else if (hasDirectSimClusterInBTL && hasLooperSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(8);
+                  } else if (hasDirectSimClusterInBTL && hasBackSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(7);
+                  } else if (hasSecSimClusterInBTL && hasLooperSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(6);
+                  } else if (hasSecSimClusterInBTL && hasBackSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(5);
+                  } else if (hasLooperSimClusterInBTL && hasBackSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(4);
+                  } else if (hasDirectSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(0);
+                  } else if (hasSecSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(1);
+                  } else if (hasLooperSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(2);
+                  } else if (hasBackSimClusterInBTL) {
+                      meSimClusterAssoc_->Fill(3);
+                  }
+
+                using SimClusterType = typename std::remove_reference<decltype(mtdSimClusters)>::type::value_type;
+                std::vector<SimClusterType> filteredSimClusters;
+
+                for (const auto& mtdSimClusterRef : mtdSimClusters) {  // Filtered SimCluster loop
+                    auto its2dr = s2rAssociationMap.equal_range(mtdSimClusterRef);
+                    if (((its2dr.first) != s2rAssociationMap.end()) && (!(its2dr.first)->second.empty())) {
+                        const auto& recoClustersRefsAll = (*its2dr.first).second;
+                        MTDDetId clusIdFromRefAll = recoClustersRefsAll[0]->id();
+                        if (clusIdFromRefAll.mtdSubDetector() == MTDDetId::BTL) {
+                            filteredSimClusters.push_back(mtdSimClusterRef);
+                            if (mtdSimClusterRef->trackIdOffset() == 0) {
+                                simToRecoFoundDirect = true;
+                            } else if (mtdSimClusterRef->trackIdOffset() == 1) {
+                                simToRecoFoundSec = true;
+                            } else if (mtdSimClusterRef->trackIdOffset() == 2) {
+                                simToRecoFoundLooper = true;
+                            } else if (mtdSimClusterRef->trackIdOffset() == 3) {
+                                simToRecoFoundBack = true;
+                            }
+                        } else if (clusIdFromRefAll.mtdSubDetector() == MTDDetId::ETL){
+                          simToRecoFoundETL = true;
+                        }
+                    }
+                }  // End of Filtered SimCluster loop
+
+                // Histogram for SIM clusters with associated RECO clusters by combined category
+
+                if (simToRecoFoundETL) {
+                     meRecoClusterAssoc_->Fill(15);
+                } else if (simToRecoFoundDirect && simToRecoFoundSec && simToRecoFoundLooper && simToRecoFoundBack) {
+                    meRecoClusterAssoc_->Fill(14);
+                } else if (simToRecoFoundDirect && simToRecoFoundSec && simToRecoFoundLooper) {
+                    meRecoClusterAssoc_->Fill(13);
+                } else if (simToRecoFoundDirect && simToRecoFoundSec && simToRecoFoundBack) {
+                    meRecoClusterAssoc_->Fill(12);
+                } else if (simToRecoFoundDirect && simToRecoFoundLooper && simToRecoFoundBack) {
+                    meRecoClusterAssoc_->Fill(11);
+                } else if (simToRecoFoundSec && simToRecoFoundLooper && simToRecoFoundBack) {
+                    meRecoClusterAssoc_->Fill(10);
+                } else if (simToRecoFoundDirect && simToRecoFoundSec) {
+                    meRecoClusterAssoc_->Fill(9);
+                } else if (simToRecoFoundDirect && simToRecoFoundLooper) {
+                    meRecoClusterAssoc_->Fill(8);
+                } else if (simToRecoFoundDirect && simToRecoFoundBack) {
+                    meRecoClusterAssoc_->Fill(7);
+                } else if (simToRecoFoundSec && simToRecoFoundLooper) {
+                    meRecoClusterAssoc_->Fill(6);
+                } else if (simToRecoFoundSec && simToRecoFoundBack) {
+                    meRecoClusterAssoc_->Fill(5);
+                } else if (simToRecoFoundLooper && simToRecoFoundBack) {
+                    meRecoClusterAssoc_->Fill(4);
+                } else if (simToRecoFoundDirect) {
+                    meRecoClusterAssoc_->Fill(0);
+                } else if (simToRecoFoundSec) {
+                    meRecoClusterAssoc_->Fill(1);
+                } else if (simToRecoFoundLooper) {
+                    meRecoClusterAssoc_->Fill(2);
+                } else if (simToRecoFoundBack) {
+                    meRecoClusterAssoc_->Fill(3);
+                }
+
+            double resPt = (track.pt() - (*TPRef)->pt()) / (*TPRef)->pt();
+            double resEta = (track.eta() - (*TPRef)->eta()) / (*TPRef)->eta();
+            double resPhi = (track.phi() - (*TPRef)->phi()) / (*TPRef)->phi();    
+
+            // If the full chain is matched, calculate and fill resolution and pulls
+
+            if (simToRecoFoundDirect || simToRecoFoundSec || simToRecoFoundLooper || simToRecoFoundBack) {
+                // Fill resolution histograms
+                meResRecTpSimRecoBtlPt_->Fill(resPt);
+                meResRecTpSimRecoBtlEta_->Fill(resEta);
+                meResRecTpSimRecoBtlPhi_->Fill(resPhi);
+            } else if(simToRecoFoundETL){
+                meResRecTpSimRecoEtlPt_->Fill(resPt);
+                meResRecTpSimRecoEtlEta_->Fill(resEta);
+                meResRecTpSimRecoEtlPhi_->Fill(resPhi);
+            }
+          }
+        }
+
 
     bool isBTL = false;
     bool isETL = false;
@@ -682,7 +912,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
         }
       }
     }  // MC truth matich analysis for good PV
-  }    //RECO tracks loop
+  } //RECO tracks loop
 }
 
 const std::pair<bool, bool> MtdTracksValidation::checkAcceptance(const reco::Track& track,
@@ -877,6 +1107,21 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
   ibook.setCurrentFolder(folder_);
 
   // histogram booking
+
+  meTPAssoc_ = ibook.book1D("TrackTPAssoc", "TP association categories", 2, 0, 2);
+  meSimClusterAssoc_ = ibook.book1D("TrackSimClusterAssoc", "SIM cluster association categories", 16, 0, 16);
+  meRecoClusterAssoc_ = ibook.book1D("TrackRecoClusterAssoc", "RECO cluster association categories", 16, 0, 16);
+
+  meResRecTpSimRecoBtlPt_ = ibook.book1D("TrackResPt_FullChainMatchedBtl", "Pt Resolution (Full Chain Matched);(reco - sim) / sim;Tracks", 100, -0.5, 0.5);
+  meResRecTpSimRecoBtlEta_ = ibook.book1D("TrackResEta_FullChainMatchedBtl", "Eta Resolution (Full Chain Matched);(reco - sim) / sim;Tracks", 100, -0.05, 0.05);
+  meResRecTpSimRecoBtlPhi_ = ibook.book1D("TrackResPhi_FullChainMatchedBtl", "Phi Resolution (Full Chain Matched);(reco - sim) / sim;Tracks", 100, -0.05, 0.05);
+ 
+  meResRecTpSimRecoEtlPt_ = ibook.book1D("TrackResPt_FullChainMatchedEtl", "Pt Resolution (Full Chain Matched);(reco - sim) / sim;Tracks", 100, -0.5, 0.5);
+  meResRecTpSimRecoEtlEta_ = ibook.book1D("TrackResEta_FullChainMatchedEtl", "Eta Resolution (Full Chain Matched);(reco - sim) / sim;Tracks", 100, -0.05, 0.05);
+  meResRecTpSimRecoEtlPhi_ = ibook.book1D("TrackResPhi_FullChainMatchedEtl", "Phi Resolution (Full Chain Matched);(reco - sim) / sim;Tracks", 100, -0.05, 0.05);
+
+
+
   meBTLTrackRPTime_ = ibook.book1D("TrackBTLRPTime", "Track t0 with respect to R.P.;t0 [ns]", 100, -1, 3);
   meBTLTrackEffEtaTot_ = ibook.book1D("TrackBTLEffEtaTot", "Track efficiency vs eta (Tot);#eta_{RECO}", 100, -1.6, 1.6);
   meBTLTrackEffPhiTot_ =
@@ -1191,6 +1436,7 @@ void MtdTracksValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
   desc.add<edm::InputTag>("SimTag", edm::InputTag("mix", "MergedTrackTruth"));
   desc.add<edm::InputTag>("TPtoRecoTrackAssoc", edm::InputTag("trackingParticleRecoTrackAsssociation"));
   desc.add<edm::InputTag>("tp2SimAssociationMapTag", edm::InputTag("mtdSimLayerClusterToTPAssociation"));
+  desc.add<edm::InputTag>("s2rAssociationMapTag", edm::InputTag("mtdRecoClusterToSimLayerClusterAssociation"));
   desc.add<edm::InputTag>("btlRecHits", edm::InputTag("mtdRecHits", "FTLBarrel"));
   desc.add<edm::InputTag>("etlRecHits", edm::InputTag("mtdRecHits", "FTLEndcap"));
   desc.add<edm::InputTag>("tmtd", edm::InputTag("trackExtenderWithMTD:generalTracktmtd"));
@@ -1285,6 +1531,17 @@ const edm::Ref<std::vector<TrackingParticle>>* MtdTracksValidation::getMatchedTP
 
   // reco track not matched to any TP from vertex
   return nullptr;
+}
+
+const reco::TrackBaseRef* MtdTracksValidation::getMatchedRecoTrack(const edm::Ref<std::vector<TrackingParticle>>& tp) {
+    auto found = s2r_->find(tp);
+
+    // TrackingParticle not matched to any reco track
+    if (found == s2r_->end())
+        return nullptr;
+
+    // Return the first associated reco track
+    return &(found->val.begin()->first);
 }
 
 DEFINE_FWK_MODULE(MtdTracksValidation);
