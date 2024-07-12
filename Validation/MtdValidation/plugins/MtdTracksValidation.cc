@@ -282,14 +282,6 @@ private:
   MonitorElement* meOuterEtaDirectBTL_;
   MonitorElement* meEtaDirectBTL_;
 
-  MonitorElement* meNRecoTrETL_;
-  MonitorElement* meTpMatchedRecoTrETL_;
-  MonitorElement* meSimClusterAssocETL_;
-  MonitorElement* meNoSimClusterAssocETL_;
-  MonitorElement* meRecoClusterAssocETL_;
-  MonitorElement* meOuterRNoSimETL_;
-  MonitorElement* meOuterZNoSimETL_;
-  MonitorElement* meExtraPhiAtNoSimETL_;
 };
 
 // ------------ constructor and destructor --------------
@@ -1085,17 +1077,6 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
       ibook.book2D("TrackOuterRZDirectBTL", "Track Outer RZ for Direct BTL", 200, -300, 300, 200, 0, 120);
   meEtaDirectBTL_ = ibook.book1D("TrackEtaDirectBTL", "Track Eta for Direct BTL", 150, -2.5, 2.5);
   meOuterEtaDirectBTL_ = ibook.book1D("TrackOuterEtaDirectBTL", "Track OuterEta for Direct BTL", 150, -2.5, 2.5);
-
-  meNRecoTrETL_ = ibook.book1D("NTrackTrETL", "Number of tracks in Geo ETL", 1, 0, 1);
-  meTpMatchedRecoTrETL_ = ibook.book1D("TrackTPAssocETL", "TP association ETL", 1, 0, 1);
-  meRecoClusterAssocETL_ = ibook.book1D("TrackRecoClusterAssocETL", "RECO cluster association ETL", 1, 0, 1);
-  meSimClusterAssocETL_ = ibook.book1D("TrackSimClusterAssocETL", "SIM cluster association ETL", 1, 0, 1);
-  meNoSimClusterAssocETL_ = ibook.book1D("TrackNoSimClusterAssocETL", "No SIM cluster association ETL", 1, 0, 1);
-
-  meOuterRNoSimETL_ = ibook.book1D("TrackOuterRNoSimETL", "Track OuterR for No Sim ETL", 120, -1, 130);
-  meOuterZNoSimETL_ = ibook.book1D("TrackOuterZNoSimETL", "Track OuterZ for No Sim ETL", 200, -400, 400);
-  meExtraPhiAtNoSimETL_ = ibook.book1D(
-      "ExtraPhiAtNoSimETL", "Phi at ETL surface of extrapolated tracks with no SIMClus; phi [deg]", 720, -180., 180.);
 
   meBTLTrackRPTime_ = ibook.book1D("TrackBTLRPTime", "Track t0 with respect to R.P.;t0 [ns]", 100, -1, 3);
   meBTLTrackEffEtaTot_ = ibook.book1D("TrackBTLEffEtaTot", "Track efficiency vs eta (Tot);#eta_{RECO}", 100, -1.6, 1.6);
