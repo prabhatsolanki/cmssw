@@ -54,6 +54,8 @@
 #include "DataFormats/GeometryCommonDetAlgo/interface/MeasurementError.h"
 #include "DataFormats/GeometryCommonDetAlgo/interface/MeasurementPoint.h"
 #include "DataFormats/FTLRecHit/interface/FTLRecHitCollections.h"
+#include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
+#include "DataFormats/TrackerRecHit2D/interface/MTDTrackingRecHit.h"
 
 #include "DataFormats/Common/interface/OneToMany.h"
 #include "DataFormats/Common/interface/AssociationMap.h"
@@ -85,7 +87,6 @@ public:
 
 private:
   void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override;
-
   void analyze(const edm::Event&, const edm::EventSetup&) override;
 
   const std::pair<bool, bool> checkAcceptance(
@@ -98,6 +99,7 @@ private:
   const bool mvaGenRecMatch(const HepMC::GenParticle&, const double&, const reco::TrackBase&, const bool&);
   const edm::Ref<std::vector<TrackingParticle>>* getMatchedTP(const reco::TrackBaseRef&);
   const reco::TrackBaseRef* getMatchedRecoTrack(const edm::Ref<std::vector<TrackingParticle>>&);
+  bool isSameCluster(const FTLCluster&, const FTLCluster&);
 
   const unsigned long int uniqueId(const uint32_t x, const EncodedEventId& y) {
     const uint64_t a = static_cast<uint64_t>(x);
@@ -282,6 +284,19 @@ private:
   MonitorElement* meOuterEtaDirectBTL_;
   MonitorElement* meEtaDirectBTL_;
 
+  MonitorElement* meNRecoTrETL_;
+  MonitorElement* meTpMatchedRecoTrETL_;
+  MonitorElement* meSimClusterAssocETL_;
+  MonitorElement* meNoSimClusterAssocETL_;
+  MonitorElement* meRecoClusterAssocETL_;
+  MonitorElement* meOuterRNoSimETL_;
+  MonitorElement* meOuterZNoSimETL_;
+  MonitorElement* meExtraPhiAtNoSimETL_;
+
+  MonitorElement* meMatchedTimeResDirectBTL_;
+  MonitorElement* meMatchedTimeResOtherBTL_;
+  MonitorElement* meMatchedTimeResETL_;
+ 
 };
 
 // ------------ constructor and destructor --------------
@@ -638,118 +653,223 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
           }
         }
 
+        // Calculate end decay vertex radius and Z position
         float lastDecayRadius = -1.0;
         float lastDecayZ = -1.0;
 
-        
-        if ((*tp_info)->decayVertices().size() > 0) {
-          for (auto iTV = (*tp_info)->decayVertices_begin(); iTV != (*tp_info)->decayVertices_end(); ++iTV) {
-            const TrackingVertex& decayVertex = **iTV;
-            const auto& decayPosition = decayVertex.position();
-
-            // Calculate the radius of the decay vertex
-            float radius = std::sqrt(decayPosition.x() * decayPosition.x() + decayPosition.y() * decayPosition.y());
-
-            // Keep track of the last decay vertex
-            lastDecayRadius = radius;
-            lastDecayZ = decayPosition.z();
-          }
+        const auto& decayVertices = (*tp_info)->decayVertices();
+        if (!decayVertices.empty()) {
+          const auto& decayVertex = *decayVertices[decayVertices.size() - 1];
+          const auto& decayPosition = decayVertex.position();
+          lastDecayRadius = std::sqrt(decayPosition.x() * decayPosition.x() + decayPosition.y() * decayPosition.y());
+          lastDecayZ = decayPosition.z();
         }
 
-        if (std::abs(trackGen.eta()) < trackMaxBtlEta_)
+        
+ 
+        if (std::abs(trackGen.eta()) < trackMaxBtlEta_) { //BTL
+          auto dTime = t0Safe[trackref] - tsim;
+          auto pullTime = dTime / Sigmat0Safe[trackref];
 
-        {
           meTpMatchedRecoTrBTL_->Fill(0);
+
           bool hasDirectSimClusterInBTL = false;
           bool hasOtherSimClusterInBTL = false;
-
           bool simToRecoFoundDirectBTL = false;
           bool simToRecoFoundOtherBTL = false;
+          bool recoToRecoFoundDirectBTL = false;
+          bool recoToRecoFoundOtherBTL = false;
+
+          std::vector<edm::Ref<MtdSimLayerClusterCollection>> BTLSimClusters;
 
           if (withMTD) {
-            auto& mtdSimClusters = simClustersRefs->val;
+            const auto& mtdSimClusters = simClustersRefs->val;
 
-            // Sort by Time
-            std::vector<edm::Ref<MtdSimLayerClusterCollection>> sortedSimClusters;
+            // Filter and sort SimClusters by time
             for (const auto& ref : mtdSimClusters) {
               std::vector<std::pair<uint32_t, std::pair<uint8_t, uint8_t>>> detIdsAndRows = ref->detIds_and_rows();
               std::vector<uint32_t> detIds(detIdsAndRows.size());
-              std::transform(detIdsAndRows.begin(),
-                             detIdsAndRows.end(),
-                             detIds.begin(),
-                             [](const std::pair<uint32_t, std::pair<uint8_t, uint8_t>>& pair) { return pair.first; });
+              std::transform(detIdsAndRows.begin(), detIdsAndRows.end(), detIds.begin(), [](const auto& pair) {
+                return pair.first;
+              });
 
-              bool isBtl = (MTDDetId(detIds[0]).mtdSubDetector() == MTDDetId::BTL);
-              if (isBtl) {
-                sortedSimClusters.push_back(ref);
+              if (MTDDetId(detIds[0]).mtdSubDetector() == MTDDetId::BTL) {
+                BTLSimClusters.push_back(ref);
               }
             }
-            std::sort(sortedSimClusters.begin(),
-                      sortedSimClusters.end(),
-                      [](const edm::Ref<MtdSimLayerClusterCollection>& a,
-                         const edm::Ref<MtdSimLayerClusterCollection>& b) { return a->simLCTime() < b->simLCTime(); });
 
-            // Find the first direct hit
-            auto directHit = std::find_if(sortedSimClusters.begin(),
-                                          sortedSimClusters.end(),
-                                          [](const edm::Ref<MtdSimLayerClusterCollection>& simCluster) {
-                                            return simCluster->trackIdOffset() == 0;
-                                          });
+            if (!BTLSimClusters.empty()) {
+              std::sort(BTLSimClusters.begin(), BTLSimClusters.end(), [](const auto& a, const auto& b) {
+                return a->simLCTime() < b->simLCTime();
+              });
 
-            if (sortedSimClusters.size() > 0) {
-              for (const auto& mtdSimClusterRef : sortedSimClusters) {  
+              // Find the first direct hit
+              auto directHit = std::find_if(BTLSimClusters.begin(),
+                                            BTLSimClusters.end(),
+                                            [](const auto& simCluster) { return simCluster->trackIdOffset() == 0; });
 
-                if (directHit != sortedSimClusters.end() && mtdSimClusterRef == *directHit) {
+              for (const auto& mtdSimClusterRef : BTLSimClusters) {
+                bool isDirectHit = (directHit != BTLSimClusters.end() && mtdSimClusterRef == *directHit);
+
+                if (isDirectHit) {
                   hasDirectSimClusterInBTL = true;
                 } else if (mtdSimClusterRef->trackIdOffset() != 0) {
                   hasOtherSimClusterInBTL = true;
                 }
-                auto its2dr = s2rAssociationMap.equal_range(mtdSimClusterRef);
-                if (((its2dr.first) != s2rAssociationMap.end()) && (!(its2dr.first)->second.empty())) {
-                  const auto& recoClustersRefsAll = (*its2dr.first).second;
-                  MTDDetId clusIdFromRefAll = recoClustersRefsAll[0]->id();
-                  bool isBtl = (clusIdFromRefAll.mtdSubDetector() == MTDDetId::BTL);
 
-                  if (directHit != sortedSimClusters.end() && mtdSimClusterRef == *directHit && isBtl) {
-                    simToRecoFoundDirectBTL = true;
-                  } else if (mtdSimClusterRef->trackIdOffset() != 0 && isBtl) {
-                    simToRecoFoundOtherBTL = true;
+                auto its2dr = s2rAssociationMap.equal_range(mtdSimClusterRef);
+                if (its2dr.first != s2rAssociationMap.end() && !its2dr.first->second.empty()) {
+                  const auto& recoClustersRefsAll = its2dr.first->second;
+                  if (MTDDetId(recoClustersRefsAll[0]->id()).mtdSubDetector() == MTDDetId::BTL) {
+                    if (isDirectHit) {
+                      simToRecoFoundDirectBTL = true;
+                    } else if (mtdSimClusterRef->trackIdOffset() != 0) {
+                      simToRecoFoundOtherBTL = true;
+                    }
+
+                    auto checkRecoToReco = [this, &recoClustersRefsAll](const auto& track, bool& recoToRecoFound) { //RecoClus to RecoTrack matching
+                      for (const auto& hit : track.recHits()) {
+                        if (!hit->isValid())
+                          continue;
+                        MTDDetId Hit = hit->geographicalId();
+                        if (Hit.det() == 6 && Hit.subdetId() == 1 && Hit.mtdSubDetector() == 1) {
+                          const MTDTrackingRecHit* mtdhit = static_cast<const MTDTrackingRecHit*>(hit);
+                          const FTLCluster& hitCluster = mtdhit->mtdCluster();
+                          for (const auto& recoClusterRef : recoClustersRefsAll) {
+                            if (isSameCluster(hitCluster, *recoClusterRef)) {
+                              recoToRecoFound = true;
+                              return;
+                            }
+                          }
+                        }
+                      }
+                    };
+
+                    if (simToRecoFoundDirectBTL) {
+                      checkRecoToReco(track, recoToRecoFoundDirectBTL);
+                    } else if (simToRecoFoundOtherBTL) {
+                      checkRecoToReco(track, recoToRecoFoundOtherBTL);
+                    }
                   }
                 }
               }
             }
+          }
 
-            if (hasDirectSimClusterInBTL) {
-              meSimClusterAssocBTL_->Fill(0);
-            } else if (hasOtherSimClusterInBTL) {
-              meSimClusterAssocBTL_->Fill(1);
-            }
-
-            if (hasDirectSimClusterInBTL && simToRecoFoundDirectBTL) {
-              meRecoClusterAssocBTL_->Fill(0);
-              meOuterRDirectBTL_->Fill(lastDecayRadius);
-              meOuterZDirectBTL_->Fill(lastDecayZ);
-              meOuterRZDirectBTL_->Fill(lastDecayZ, lastDecayRadius);
-              meEtaDirectBTL_->Fill(trackGen.eta());
-              meOuterEtaDirectBTL_->Fill(trackGen.outerEta());
-
-            } else if (hasOtherSimClusterInBTL && simToRecoFoundOtherBTL) {
-              meRecoClusterAssocBTL_->Fill(1);
-              meDxyOtherBTL_->Fill(std::abs(trackGen.dxy()));
-              meDzOtherBTL_->Fill(std::abs(trackGen.dz()));
-
-              meOuterROtherBTL_->Fill(lastDecayRadius);
-              meOuterZOtherBTL_->Fill(lastDecayZ);
-              meOuterRZOtherBTL_->Fill(lastDecayZ, lastDecayRadius);
-            }
-
-          } else {
+          // If no direct or other SimClusters are found
+          if (!hasDirectSimClusterInBTL && !hasOtherSimClusterInBTL) {
             meNoSimClusterAssocBTL_->Fill(0);
             meDxyNoSimBTL_->Fill(std::abs(trackGen.dxy()));
             meDzNoSimBTL_->Fill(std::abs(trackGen.dz()));
-
             meOuterRNoSimBTL_->Fill(lastDecayRadius);
             meOuterZNoSimBTL_->Fill(lastDecayZ);
+
+            if (lastDecayRadius == -1) {
+              size_t nlayers = 0;
+              float extrho = 0.0, exteta = 0.0, extphi = 0.0, selvar = 0.0;
+              auto accept = checkAcceptance(trackGen, iEvent, iSetup, nlayers, extrho, exteta, extphi, selvar);
+              if (accept.first && std::abs(exteta) < trackMaxBtlEta_) {
+                meExtraPhiAtNoSimBTL_->Fill(angle_units::operators::convertRadToDeg(extphi));
+              }
+            }
+          }
+
+          // Fill histograms based on the results
+          if (hasDirectSimClusterInBTL) {
+            meSimClusterAssocBTL_->Fill(0);
+          } else if (hasOtherSimClusterInBTL) {
+            meSimClusterAssocBTL_->Fill(1);
+          }
+
+          if (hasDirectSimClusterInBTL && simToRecoFoundDirectBTL && recoToRecoFoundDirectBTL) {
+            meRecoClusterAssocBTL_->Fill(0);
+            meOuterRDirectBTL_->Fill(lastDecayRadius);
+            meOuterZDirectBTL_->Fill(lastDecayZ);
+            meOuterRZDirectBTL_->Fill(lastDecayZ, lastDecayRadius);
+            meEtaDirectBTL_->Fill(trackGen.eta());
+            meOuterEtaDirectBTL_->Fill(trackGen.outerEta());
+            meMatchedTimeResDirectBTL_ ->Fill(dTime);
+            
+          } else if (hasOtherSimClusterInBTL && simToRecoFoundOtherBTL && recoToRecoFoundOtherBTL) {
+            meRecoClusterAssocBTL_->Fill(1);
+            meDxyOtherBTL_->Fill(std::abs(trackGen.dxy()));
+            meDzOtherBTL_->Fill(std::abs(trackGen.dz()));
+            meOuterROtherBTL_->Fill(lastDecayRadius);
+            meOuterZOtherBTL_->Fill(lastDecayZ);
+            meOuterRZOtherBTL_->Fill(lastDecayZ, lastDecayRadius);
+            meMatchedTimeResOtherBTL_ ->Fill(dTime);
+
+          }
+        }
+
+        else if ((std::abs(trackGen.eta()) > trackMinEtlEta_) && (std::abs(trackGen.eta()) < trackMaxEtlEta_)) {
+          auto dTime = t0Safe[trackref] - tsim;
+          auto pullTime = dTime / Sigmat0Safe[trackref];
+          meTpMatchedRecoTrETL_->Fill(0);
+
+          bool hasSimClusterInETL = false;
+          bool simToRecoFoundETL = false;
+          bool recoToRecoFoundETL = false;
+
+          std::vector<edm::Ref<MtdSimLayerClusterCollection>> ETLSimClusters;
+
+          if (withMTD) {
+            const auto& mtdSimClusters = simClustersRefs->val;
+
+            // Filter and sort SimClusters by time
+            for (const auto& ref : mtdSimClusters) {
+              std::vector<std::pair<uint32_t, std::pair<uint8_t, uint8_t>>> detIdsAndRows = ref->detIds_and_rows();
+              std::vector<uint32_t> detIds(detIdsAndRows.size());
+              std::transform(detIdsAndRows.begin(), detIdsAndRows.end(), detIds.begin(), [](const auto& pair) {
+                return pair.first;
+              });
+
+              if (MTDDetId(detIds[0]).mtdSubDetector() == MTDDetId::ETL) {
+                ETLSimClusters.push_back(ref);
+              }
+            }
+
+            if (!ETLSimClusters.empty()) {
+              for (const auto& mtdSimClusterRef : ETLSimClusters) {
+                hasSimClusterInETL = true;
+
+                auto its2dr = s2rAssociationMap.equal_range(mtdSimClusterRef);
+                if (its2dr.first != s2rAssociationMap.end() && !its2dr.first->second.empty()) {
+                  const auto& recoClustersRefsAll = its2dr.first->second;
+                  if (MTDDetId(recoClustersRefsAll[0]->id()).mtdSubDetector() == MTDDetId::ETL) {
+                    simToRecoFoundETL = true;
+
+                    auto checkRecoToReco = [this, &recoClustersRefsAll](const auto& track, bool& recoToRecoFound) {
+                      for (const auto& hit : track.recHits()) {
+                        if (!hit->isValid())
+                          continue;
+                        MTDDetId Hit = hit->geographicalId();
+                        if (Hit.det() == 6 && Hit.subdetId() == 1 && Hit.mtdSubDetector() == 2) {
+                          const MTDTrackingRecHit* mtdhit = static_cast<const MTDTrackingRecHit*>(hit);
+                          const FTLCluster& hitCluster = mtdhit->mtdCluster();
+                          for (const auto& recoClusterRef : recoClustersRefsAll) {
+                            if (isSameCluster(hitCluster, *recoClusterRef)) {
+                              recoToRecoFound = true;
+                              return;
+                            }
+                          }
+                        }
+                      }
+                    };
+
+                    if (simToRecoFoundETL) {
+                      checkRecoToReco(track, recoToRecoFoundETL);
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          if (!hasSimClusterInETL) {
+            meNoSimClusterAssocETL_->Fill(0);
+            meOuterRNoSimETL_->Fill(lastDecayRadius);
+            meOuterZNoSimETL_->Fill(lastDecayZ);
 
             if (lastDecayRadius == -1) {
               size_t nlayers(0);
@@ -758,15 +878,22 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
               float extphi(0.);
               float selvar(0.);
               auto accept = checkAcceptance(trackGen, iEvent, iSetup, nlayers, extrho, exteta, extphi, selvar);
-              if (accept.first && std::abs(exteta) < trackMaxBtlEta_) {
-                meExtraPhiAtNoSimBTL_->Fill(angle_units::operators::convertRadToDeg(extphi));
+              if (accept.first && std::abs(exteta) < trackMaxEtlEta_ && std::abs(exteta) > trackMinEtlEta_) {
+                meExtraPhiAtNoSimETL_->Fill(angle_units::operators::convertRadToDeg(extphi));
               }
             }
           }
 
-        } 
+          if (hasSimClusterInETL) {
+            meSimClusterAssocETL_->Fill(0);
+          }
 
-        //ETL: TBD
+          if (hasSimClusterInETL && simToRecoFoundETL && recoToRecoFoundETL) {
+            meRecoClusterAssocETL_->Fill(0);
+            meMatchedTimeResETL_ ->Fill(dTime);
+
+          }
+        }
 
         // detailed extrapolation check only on tracks associated to TP from signal event
         if (!mvaTPSelLV(**tp_info)) {
@@ -1058,6 +1185,10 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
   meNoSimClusterAssocBTL_ = ibook.book1D("TrackNoSimClusterAssocBTL", "No SIM cluster association BTL", 1, 0, 1);
   meDxyOtherBTL_ = ibook.book1D("TrackdXYOtherBTL", "Track dXY for Other BTL", 100, 0, 0.1);
   meDzOtherBTL_ = ibook.book1D("TrackdZOtherBTL", "Track dZ for Other BTL", 100, 0, 50);
+  meMatchedTimeResDirectBTL_ = ibook.book1D(
+      "MatchedTimeResDirectBTL_", "t_{rec} - t_{sim} Direct BTL; t_{rec} - t_{sim} [ns] ", 120, -0.15, 0.15);
+  meMatchedTimeResOtherBTL_ = ibook.book1D(
+      "MatchedTimeResOtherBTL_", "t_{rec} - t_{sim} Other BTL; t_{rec} - t_{sim} [ns] ", 120, -0.15, 0.15);
 
   meDxyNoSimBTL_ = ibook.book1D("TrackdXYNoSimBTL", "Track dXY for No Sim BTL", 100, 0, 0.1);
   meDzNoSimBTL_ = ibook.book1D("TrackdZNoSimBTL", "Track dZ for No Sim BTL", 100, 0, 50);
@@ -1077,6 +1208,19 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
       ibook.book2D("TrackOuterRZDirectBTL", "Track Outer RZ for Direct BTL", 200, -300, 300, 200, 0, 120);
   meEtaDirectBTL_ = ibook.book1D("TrackEtaDirectBTL", "Track Eta for Direct BTL", 150, -2.5, 2.5);
   meOuterEtaDirectBTL_ = ibook.book1D("TrackOuterEtaDirectBTL", "Track OuterEta for Direct BTL", 150, -2.5, 2.5);
+
+  meNRecoTrETL_ = ibook.book1D("NTrackTrETL", "Number of tracks in Geo ETL", 1, 0, 1);
+  meTpMatchedRecoTrETL_ = ibook.book1D("TrackTPAssocETL", "TP association ETL", 1, 0, 1);
+  meRecoClusterAssocETL_ = ibook.book1D("TrackRecoClusterAssocETL", "RECO cluster association ETL", 1, 0, 1);
+  meSimClusterAssocETL_ = ibook.book1D("TrackSimClusterAssocETL", "SIM cluster association ETL", 1, 0, 1);
+  meNoSimClusterAssocETL_ = ibook.book1D("TrackNoSimClusterAssocETL", "No SIM cluster association ETL", 1, 0, 1);
+  meMatchedTimeResETL_ = ibook.book1D(
+      "MatchedTimeResETL_", "t_{rec} - t_{sim} Other ETL; t_{rec} - t_{sim} [ns] ", 120, -0.15, 0.15);
+
+  meOuterRNoSimETL_ = ibook.book1D("TrackOuterRNoSimETL", "Track OuterR for No Sim ETL", 120, -1, 130);
+  meOuterZNoSimETL_ = ibook.book1D("TrackOuterZNoSimETL", "Track OuterZ for No Sim ETL", 200, -400, 400);
+  meExtraPhiAtNoSimETL_ = ibook.book1D(
+      "ExtraPhiAtNoSimETL", "Phi at ETL surface of extrapolated tracks with no SIMClus; phi [deg]", 720, -180., 180.);
 
   meBTLTrackRPTime_ = ibook.book1D("TrackBTLRPTime", "Track t0 with respect to R.P.;t0 [ns]", 100, -1, 3);
   meBTLTrackEffEtaTot_ = ibook.book1D("TrackBTLEffEtaTot", "Track efficiency vs eta (Tot);#eta_{RECO}", 100, -1.6, 1.6);
@@ -1282,15 +1426,15 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
       -0.1,
       0.1,
       "s");
-  meETLTrackMatchedTP2DPtvsPtGen_ = ibook.bookProfile(
-      "TrackMatchedTPETL2DPtvsPtGen",
-      "Pt relative difference  of Gentracks (ETL 2hits) vs Pt;pT_{truth} [GeV];pT_{Gentrack}-pT_{truth}/pT_{truth} ",
-      20,
-      0.7,
-      10.,
-      -0.1,
-      0.1,
-      "s");
+  meETLTrackMatchedTP2DPtvsPtGen_ = ibook.bookProfile("TrackMatchedTPETL2DPtvsPtGen",
+                                                      "Pt relative difference  of Gentracks (ETL 2hits) vs "
+                                                      "Pt;pT_{truth} [GeV];pT_{Gentrack}-pT_{truth}/pT_{truth} ",
+                                                      20,
+                                                      0.7,
+                                                      10.,
+                                                      -0.1,
+                                                      0.1,
+                                                      "s");
   meBTLTrackMatchedTPDPtvsPtMtd_ = ibook.bookProfile("TrackMatchedTPBTLDPtvsPtMtd",
                                                      "Pt relative difference of tracks matched to TP-BTL hits vs "
                                                      "Pt;pT_{truth} [GeV];pT_{MTDtrack}-pT_{truth}/pT_{truth} ",
@@ -1500,4 +1644,8 @@ const reco::TrackBaseRef* MtdTracksValidation::getMatchedRecoTrack(const edm::Re
   return &(found->val.begin()->first);
 }
 
+bool MtdTracksValidation::isSameCluster(const FTLCluster& clu1, const FTLCluster& clu2) {
+  return clu1.id() == clu2.id() && clu1.size() == clu2.size() && clu1.x() == clu2.x() && clu1.y() == clu2.y() &&
+         clu1.time() == clu2.time();
+}
 DEFINE_FWK_MODULE(MtdTracksValidation);
