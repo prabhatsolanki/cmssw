@@ -778,13 +778,16 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
 
             // Check if (1) and (1.1) is true -----------------> (2)
 
-            if ((isTPSimDirectBTL || isTPSimETL) && (recoToRecoFoundBTL || recoToRecoFoundETL)) {   
+            if ((isTPSimDirectBTL || isTPSimETL) && (recoToRecoFoundBTL || recoToRecoFoundETL)) {
               if (mtdSubDetector == MTDDetId::BTL) {
                 meBTLTrackTPSimRecoDirectMatchedEta_->Fill(trackGen.eta());
                 meBTLTrackTPSimRecoDirectMatchedPt_->Fill(trackGen.pt());
-              } else {
-                meETLTrackTPSimRecoMatchedEta_[(trackGen.eta() < -trackMinEtlEta_) ? 0 : 1]->Fill(trackGen.eta());
-                meETLTrackTPSimRecoMatchedPt_[(trackGen.eta() < -trackMinEtlEta_) ? 0 : 1]->Fill(trackGen.pt());
+              } else if (trackGen.eta() < -trackMinEtlEta_ && trackGen.eta() > -trackMaxEtlEta_) {
+                meETLTrackTPSimRecoMatchedEta_[0]->Fill(trackGen.eta());
+                meETLTrackTPSimRecoMatchedPt_[0]->Fill(trackGen.pt());
+              } else if (trackGen.eta() > trackMinEtlEta_ && trackGen.eta() < trackMaxEtlEta_) {
+                meETLTrackTPSimRecoMatchedEta_[1]->Fill(trackGen.eta());
+                meETLTrackTPSimRecoMatchedPt_[1]->Fill(trackGen.pt());
               }
             } else if (isTPSimOtherBTL && recoToRecoFoundBTL) {
               meBTLTrackTPSimRecoOtherMatchedEta_->Fill(trackGen.eta());
