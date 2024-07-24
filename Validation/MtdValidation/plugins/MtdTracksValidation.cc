@@ -798,11 +798,11 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                 auto& simClustersRefs_RecoMatch = (*itp.first).second;
                 for (const auto& simClusterRef_RecoMatch : simClustersRefs_RecoMatch) {
                   for (const auto& simClusterRef : SimClusters) {
-                    if (simClusterRef_RecoMatch->simLCTime() == simClusterRef->simLCTime()) {
+                    if (simClusterRef_RecoMatch == simClusterRef) {
                       if (mtdSubDetector == MTDDetId::BTL) {
-                        if (simClusterRef->trackIdOffset() == 0) {
+                        if (directHit != SimClusters.end() && simClusterRef == *directHit) {
                           isSimToSimDirectBTL = true;
-                        } else {
+                        } else if(simClusterRef->trackIdOffset() != 0){
                           isSimToSimOtherBTL = true;
                         }
                       } else {
