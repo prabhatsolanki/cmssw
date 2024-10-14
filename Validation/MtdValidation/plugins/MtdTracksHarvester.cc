@@ -147,7 +147,15 @@ private:
   MonitorElement* meETLIncorrectSimPtposMtdEff_;
 
   MonitorElement* meBTLIncorrectSimEtaTotEff_;
+  MonitorElement* meBTLIncorrectSimDirectEtaTotEff_;
+  MonitorElement* meBTLIncorrectSimSecondEtaTotEff_;
+  MonitorElement* meBTLIncorrectSimBackEtaTotEff_;
+  MonitorElement* meBTLIncorrectSimLoopEtaTotEff_;
   MonitorElement* meBTLIncorrectSimPtTotEff_;
+  MonitorElement* meBTLIncorrectSimDirectPtTotEff_;
+  MonitorElement* meBTLIncorrectSimSecondPtTotEff_;
+  MonitorElement* meBTLIncorrectSimBackPtTotEff_;
+  MonitorElement* meBTLIncorrectSimLoopPtTotEff_;
 
   MonitorElement* meETLIncorrectSimEtaposTotEff_;
   MonitorElement* meETLIncorrectSimPtposTotEff_;
@@ -299,7 +307,17 @@ void MtdTracksHarvester::dqmEndJob(DQMStore::IBooker& ibook, DQMStore::IGetter& 
   // 5
 
   MonitorElement* meBTLTrackNoSimToSimMatchedEta = igetter.get(folder_ + "BTLTrackNoSimToSimMatchedEta");
+  MonitorElement* meBTLTrackNoSimToSimDirectMatchedEta = igetter.get(folder_ + "BTLTrackNoSimToSimDirectMatchedEta");
+  MonitorElement* meBTLTrackNoSimToSimSecondMatchedEta = igetter.get(folder_ + "BTLTrackNoSimToSimSecondMatchedEta");
+  MonitorElement* meBTLTrackNoSimToSimBackMatchedEta = igetter.get(folder_ + "BTLTrackNoSimToSimBackMatchedEta");
+  MonitorElement* meBTLTrackNoSimToSimLoopMatchedEta = igetter.get(folder_ + "BTLTrackNoSimToSimLoopMatchedEta");
+
   MonitorElement* meBTLTrackNoSimToSimMatchedPt = igetter.get(folder_ + "BTLTrackNoSimToSimMatchedPt");
+  MonitorElement* meBTLTrackNoSimToSimDirectMatchedPt = igetter.get(folder_ + "BTLTrackNoSimToSimDirectMatchedPt");
+  MonitorElement* meBTLTrackNoSimToSimSecondMatchedPt = igetter.get(folder_ + "BTLTrackNoSimToSimSecondMatchedPt");
+  MonitorElement* meBTLTrackNoSimToSimBackMatchedPt = igetter.get(folder_ + "BTLTrackNoSimToSimBackMatchedPt");
+  MonitorElement* meBTLTrackNoSimToSimLoopMatchedPt = igetter.get(folder_ + "BTLTrackNoSimToSimLoopMatchedPt");
+
   MonitorElement* meETLTrackNoSimToSimMatchedEtapos = igetter.get(folder_ + "ETLTrackNoSimToSimMatchedEtapos");
   MonitorElement* meETLTrackNoSimToSimMatchedPtpos = igetter.get(folder_ + "ETLTrackNoSimToSimMatchedPtpos");
 
@@ -327,7 +345,12 @@ void MtdTracksHarvester::dqmEndJob(DQMStore::IBooker& ibook, DQMStore::IGetter& 
       !meBTLTrackTPSimNoRecoOtherMatchedEta || !meBTLTrackTPSimNoRecoOtherMatchedPt ||
       !meETLTrackTPSimNoRecoMatchedEtapos || !meETLTrackTPSimNoRecoMatchedPtpos ||
       !meETL2TrackTPSimNoRecoMatchedEtapos || !meETL2TrackTPSimNoRecoMatchedPtpos || !meETLTrackTPNoSimEtapos ||
-      !meETLTrackTPNoSimPtpos) {
+      !meETLTrackTPNoSimPtpos || !meBTLTrackTPNoSimEta || !meBTLTrackTPNoSimPt || !meBTLTrackNoSimToSimMatchedEta ||
+      !meBTLTrackNoSimToSimDirectMatchedEta || !meBTLTrackNoSimToSimSecondMatchedEta ||
+      !meBTLTrackNoSimToSimBackMatchedEta || !meBTLTrackNoSimToSimLoopMatchedEta || !meBTLTrackNoSimToSimMatchedPt ||
+      !meBTLTrackNoSimToSimDirectMatchedPt || !meBTLTrackNoSimToSimSecondMatchedPt ||
+      !meBTLTrackNoSimToSimBackMatchedPt || !meBTLTrackNoSimToSimLoopMatchedPt || !meETLTrackNoSimToSimMatchedEtapos ||
+      !meETLTrackNoSimToSimMatchedPtpos) {
     edm::LogError("MtdTracksHarvester") << "Monitoring histograms not found!" << std::endl;
     return;
   }
@@ -1152,6 +1175,38 @@ void MtdTracksHarvester::dqmEndJob(DQMStore::IBooker& ibook, DQMStore::IGetter& 
   meBTLIncorrectSimEtaTotEff_->getTH1()->SetMinimum(0.);
   computeEfficiency1D(meBTLTrackNoSimToSimMatchedEta, meBTLTrackEffEtaTot, meBTLIncorrectSimEtaTotEff_);
 
+  meBTLIncorrectSimDirectEtaTotEff_ = ibook.book1D("BTLIncorrectSimDirectEtaTotEff",
+                                                   "NoSimToSim Efficiency VS Eta;#eta;Efficiency",
+                                                   meBTLTrackEffEtaTot->getNbinsX(),
+                                                   meBTLTrackEffEtaTot->getTH1()->GetXaxis()->GetXmin(),
+                                                   meBTLTrackEffEtaTot->getTH1()->GetXaxis()->GetXmax());
+  meBTLIncorrectSimDirectEtaTotEff_->getTH1()->SetMinimum(0.);
+  computeEfficiency1D(meBTLTrackNoSimToSimDirectMatchedEta, meBTLTrackEffEtaTot, meBTLIncorrectSimDirectEtaTotEff_);
+
+  meBTLIncorrectSimSecondEtaTotEff_ = ibook.book1D("BTLIncorrectSimSecondEtaTotEff",
+                                                   "NoSimToSim Efficiency VS Eta;#eta;Efficiency",
+                                                   meBTLTrackEffEtaTot->getNbinsX(),
+                                                   meBTLTrackEffEtaTot->getTH1()->GetXaxis()->GetXmin(),
+                                                   meBTLTrackEffEtaTot->getTH1()->GetXaxis()->GetXmax());
+  meBTLIncorrectSimSecondEtaTotEff_->getTH1()->SetMinimum(0.);
+  computeEfficiency1D(meBTLTrackNoSimToSimSecondMatchedEta, meBTLTrackEffEtaTot, meBTLIncorrectSimSecondEtaTotEff_);
+
+  meBTLIncorrectSimBackEtaTotEff_ = ibook.book1D("BTLIncorrectSimBackEtaTotEff",
+                                                 "NoSimToSim Efficiency VS Eta;#eta;Efficiency",
+                                                 meBTLTrackEffEtaTot->getNbinsX(),
+                                                 meBTLTrackEffEtaTot->getTH1()->GetXaxis()->GetXmin(),
+                                                 meBTLTrackEffEtaTot->getTH1()->GetXaxis()->GetXmax());
+  meBTLIncorrectSimBackEtaTotEff_->getTH1()->SetMinimum(0.);
+  computeEfficiency1D(meBTLTrackNoSimToSimBackMatchedEta, meBTLTrackEffEtaTot, meBTLIncorrectSimBackEtaTotEff_);
+
+  meBTLIncorrectSimLoopEtaTotEff_ = ibook.book1D("BTLIncorrectSimLoopEtaTotEff",
+                                                 "NoSimToSim Efficiency VS Eta;#eta;Efficiency",
+                                                 meBTLTrackEffEtaTot->getNbinsX(),
+                                                 meBTLTrackEffEtaTot->getTH1()->GetXaxis()->GetXmin(),
+                                                 meBTLTrackEffEtaTot->getTH1()->GetXaxis()->GetXmax());
+  meBTLIncorrectSimLoopEtaTotEff_->getTH1()->SetMinimum(0.);
+  computeEfficiency1D(meBTLTrackNoSimToSimLoopMatchedEta, meBTLTrackEffEtaTot, meBTLIncorrectSimLoopEtaTotEff_);
+
   meBTLIncorrectSimPtTotEff_ = ibook.book1D("BTLIncorrectSimPtTotEff",
                                             "NoSimToSim Efficiency VS Pt;Pt;Efficiency",
                                             meBTLTrackEffPtTot->getNbinsX(),
@@ -1159,6 +1214,38 @@ void MtdTracksHarvester::dqmEndJob(DQMStore::IBooker& ibook, DQMStore::IGetter& 
                                             meBTLTrackEffPtTot->getTH1()->GetXaxis()->GetXmax());
   meBTLIncorrectSimPtTotEff_->getTH1()->SetMinimum(0.);
   computeEfficiency1D(meBTLTrackNoSimToSimMatchedPt, meBTLTrackEffPtTot, meBTLIncorrectSimPtTotEff_);
+
+  meBTLIncorrectSimDirectPtTotEff_ = ibook.book1D("BTLIncorrectSimDirectPtTotEff",
+                                                  "NoSimToSim Efficiency VS Pt;Pt;Efficiency",
+                                                  meBTLTrackEffPtTot->getNbinsX(),
+                                                  meBTLTrackEffPtTot->getTH1()->GetXaxis()->GetXmin(),
+                                                  meBTLTrackEffPtTot->getTH1()->GetXaxis()->GetXmax());
+  meBTLIncorrectSimDirectPtTotEff_->getTH1()->SetMinimum(0.);
+  computeEfficiency1D(meBTLTrackNoSimToSimDirectMatchedPt, meBTLTrackEffPtTot, meBTLIncorrectSimDirectPtTotEff_);
+
+  meBTLIncorrectSimSecondPtTotEff_ = ibook.book1D("BTLIncorrectSimSecondPtTotEff",
+                                                  "NoSimToSim Efficiency VS Pt;Pt;Efficiency",
+                                                  meBTLTrackEffPtTot->getNbinsX(),
+                                                  meBTLTrackEffPtTot->getTH1()->GetXaxis()->GetXmin(),
+                                                  meBTLTrackEffPtTot->getTH1()->GetXaxis()->GetXmax());
+  meBTLIncorrectSimSecondPtTotEff_->getTH1()->SetMinimum(0.);
+  computeEfficiency1D(meBTLTrackNoSimToSimSecondMatchedPt, meBTLTrackEffPtTot, meBTLIncorrectSimSecondPtTotEff_);
+
+  meBTLIncorrectSimBackPtTotEff_ = ibook.book1D("BTLIncorrectSimBackPtTotEff",
+                                                "NoSimToSim Efficiency VS Pt;Pt;Efficiency",
+                                                meBTLTrackEffPtTot->getNbinsX(),
+                                                meBTLTrackEffPtTot->getTH1()->GetXaxis()->GetXmin(),
+                                                meBTLTrackEffPtTot->getTH1()->GetXaxis()->GetXmax());
+  meBTLIncorrectSimBackPtTotEff_->getTH1()->SetMinimum(0.);
+  computeEfficiency1D(meBTLTrackNoSimToSimBackMatchedPt, meBTLTrackEffPtTot, meBTLIncorrectSimBackPtTotEff_);
+
+  meBTLIncorrectSimLoopPtTotEff_ = ibook.book1D("BTLIncorrectSimLoopPtTotEff",
+                                                "NoSimToSim Efficiency VS Pt;Pt;Efficiency",
+                                                meBTLTrackEffPtTot->getNbinsX(),
+                                                meBTLTrackEffPtTot->getTH1()->GetXaxis()->GetXmin(),
+                                                meBTLTrackEffPtTot->getTH1()->GetXaxis()->GetXmax());
+  meBTLIncorrectSimLoopPtTotEff_->getTH1()->SetMinimum(0.);
+  computeEfficiency1D(meBTLTrackNoSimToSimLoopMatchedPt, meBTLTrackEffPtTot, meBTLIncorrectSimLoopPtTotEff_);
 
   meETLIncorrectSimEtaposTotEff_ = ibook.book1D("ETLIncorrectSimEtaposTotEff",
                                                 "NoSimToSim Efficiency VS Eta (positive);#eta;Efficiency",

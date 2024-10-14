@@ -297,12 +297,32 @@ private:
   MonitorElement* meBTLTrackNoSimToSimRes_;
   MonitorElement* meBTLTrackNoSimToSimPull_;
 
+  MonitorElement* meBTLTrackNoSimToSimDirectMatchedEta_;
+  MonitorElement* meBTLTrackNoSimToSimDirectMatchedPt_;
+  MonitorElement* meBTLTrackNoSimToSimSecondMatchedEta_;
+  MonitorElement* meBTLTrackNoSimToSimSecondMatchedPt_;
+  MonitorElement* meBTLTrackNoSimToSimLoopMatchedEta_;
+  MonitorElement* meBTLTrackNoSimToSimLoopMatchedPt_;
+  MonitorElement* meBTLTrackNoSimToSimBackMatchedEta_;
+  MonitorElement* meBTLTrackNoSimToSimBackMatchedPt_;
+
   // BTL Fake Association
   MonitorElement* meBTLTrackFakeNoSimToSimEta_;
   MonitorElement* meBTLTrackFakeNoSimToSimPt_;
   MonitorElement* meBTLTrackFakeNoSimToSimMVAQual_;
   MonitorElement* meBTLTrackFakeNoSimToSimRes_;
   MonitorElement* meBTLTrackFakeNoSimToSimPull_;
+
+  MonitorElement* meBTLTrackFakeNoSimToSimDirectEta_;
+  MonitorElement* meBTLTrackFakeNoSimToSimDirectPt_;
+  MonitorElement* meBTLTrackFakeNoSimToSimSecondEta_;
+  MonitorElement* meBTLTrackFakeNoSimToSimSecondPt_;
+  MonitorElement* meBTLTrackFakeNoSimToSimLoopEta_;
+  MonitorElement* meBTLTrackFakeNoSimToSimLoopPt_;
+  MonitorElement* meBTLTrackFakeNoSimToSimBackEta_;
+  MonitorElement* meBTLTrackFakeNoSimToSimBackPt_;
+
+  //ETL
 
   MonitorElement* meETLTrackTPSimMatchedEta_[2];
   MonitorElement* meETLTrackTPSimMatchedPt_[2];
@@ -766,11 +786,16 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                 SimClusters.push_back(ref);
               }
             }
+
+            edm::Ref<MtdSimLayerClusterCollection> firstBTLSimCluster;
             // Sort BTL clusters by time
             if (!SimClusters.empty() && mtdSubDetector == MTDDetId::BTL) {
               std::sort(SimClusters.begin(), SimClusters.end(), [](const auto& a, const auto& b) {
                 return a->simLCTime() < b->simLCTime();
               });
+
+              firstBTLSimCluster = SimClusters.front();
+
               // Find the first direct hit in time
               directHit = std::find_if(SimClusters.begin(), SimClusters.end(), [](const auto& simCluster) {
                 return simCluster->trackIdOffset() == 0;
@@ -972,7 +997,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                         }
                       }
                     }
-
+                    // Incorrect association
                     if (!matched && (isTPSimDirectBTL || isTPSimOtherBTL || isTPSimETL)) {
                       if (mtdSubDetector == MTDDetId::BTL) {
                         isNoSimToSimBTL = true;
@@ -988,6 +1013,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
               cout << "Track eta, pt" << trackGen.eta() << " , " << trackGen.pt() << endl;
             }
             // Fill res and pulls if association is good or not
+
             if (isSimToSimDirectBTL) {
               meBTLTrackSimToSimDirectMatchedEta_->Fill(trackGen.eta());
               meBTLTrackSimToSimDirectMatchedPt_->Fill(trackGen.pt());
@@ -1048,7 +1074,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
               }
 
             } else {
-              if (!isSimToSimDirectBTL && !isSimToSimOtherBTL) {
+              if (!isSimToSimDirectBTL && !isSimToSimOtherBTL && mtdSubDetector == MTDDetId::BTL) {
                 meBTLTrackNoSimToSimMatchedEta_->Fill(trackGen.eta());
                 meBTLTrackNoSimToSimMatchedPt_->Fill(trackGen.pt());
                 if (isTime) {
@@ -1056,7 +1082,23 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                   meBTLTrackNoSimToSimRes_->Fill(dT);
                   meBTLTrackNoSimToSimPull_->Fill(pullT);
                 }
-              } else if (!isSimToSimETL) {
+                if (firstBTLSimCluster.isNonnull()) {
+                  if (firstBTLSimCluster->trackIdOffset() == 0) {
+                    meBTLTrackNoSimToSimDirectMatchedEta_->Fill(trackGen.eta());
+                    meBTLTrackNoSimToSimDirectMatchedPt_->Fill(trackGen.pt());
+                  } else if (firstBTLSimCluster->trackIdOffset() == 1) {
+                    meBTLTrackNoSimToSimSecondMatchedEta_->Fill(trackGen.eta());
+                    meBTLTrackNoSimToSimSecondMatchedPt_->Fill(trackGen.pt());
+                  } else if (firstBTLSimCluster->trackIdOffset() == 2) {
+                    meBTLTrackNoSimToSimLoopMatchedEta_->Fill(trackGen.eta());
+                    meBTLTrackNoSimToSimLoopMatchedPt_->Fill(trackGen.pt());
+                  } else if (firstBTLSimCluster->trackIdOffset() == 3) {
+                    meBTLTrackNoSimToSimBackMatchedEta_->Fill(trackGen.eta());
+                    meBTLTrackNoSimToSimBackMatchedPt_->Fill(trackGen.pt());
+                  }
+                }
+
+              } else if (!isSimToSimETL && mtdSubDetector == MTDDetId::ETL) {
                 if (trackGen.eta() < -trackMinEtlEta_ && trackGen.eta() > -trackMaxEtlEta_) {
                   meETLTrackNoSimToSimMatchedEta_[0]->Fill(trackGen.eta());
                   meETLTrackNoSimToSimMatchedPt_[0]->Fill(trackGen.pt());
@@ -1078,7 +1120,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
             }
 
             // BTL fake association case
-            if (isNoSimToSimBTL) {
+            if (isNoSimToSimBTL && mtdSubDetector == MTDDetId::BTL) {
               meBTLTrackFakeNoSimToSimEta_->Fill(trackGen.eta());
               meBTLTrackFakeNoSimToSimPt_->Fill(trackGen.pt());
               if (isTime) {
@@ -1086,10 +1128,25 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                 meBTLTrackFakeNoSimToSimRes_->Fill(dT);
                 meBTLTrackFakeNoSimToSimPull_->Fill(pullT);
               }
+              if (firstBTLSimCluster.isNonnull()) {
+                if (firstBTLSimCluster->trackIdOffset() == 0) {
+                  meBTLTrackFakeNoSimToSimDirectEta_->Fill(trackGen.eta());
+                  meBTLTrackFakeNoSimToSimDirectPt_->Fill(trackGen.pt());
+                } else if (firstBTLSimCluster->trackIdOffset() == 1) {
+                  meBTLTrackFakeNoSimToSimSecondEta_->Fill(trackGen.eta());
+                  meBTLTrackFakeNoSimToSimSecondPt_->Fill(trackGen.pt());
+                } else if (firstBTLSimCluster->trackIdOffset() == 2) {
+                  meBTLTrackFakeNoSimToSimLoopEta_->Fill(trackGen.eta());
+                  meBTLTrackFakeNoSimToSimLoopPt_->Fill(trackGen.pt());
+                } else if (firstBTLSimCluster->trackIdOffset() == 3) {
+                  meBTLTrackFakeNoSimToSimBackEta_->Fill(trackGen.eta());
+                  meBTLTrackFakeNoSimToSimBackPt_->Fill(trackGen.pt());
+                }
+              }
             }
 
             // ETL fake association case
-            else if (isNoSimToSimETL) {
+            else if (isNoSimToSimETL && mtdSubDetector == MTDDetId::ETL) {
               if (trackGen.eta() < -trackMinEtlEta_ && trackGen.eta() > -trackMaxEtlEta_) {
                 meETLTrackFakeNoSimToSimEta_[0]->Fill(trackGen.eta());
                 meETLTrackFakeNoSimToSimPt_[0]->Fill(trackGen.pt());
@@ -1893,6 +1950,48 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
                                            -5.,
                                            5.);
 
+  meBTLTrackNoSimToSimDirectMatchedEta_ = ibook.book1D("BTLTrackNoSimToSimDirectMatchedEta",
+                                                       "BTL Reco track not matched with Direct Simcluster;#eta_{RECO}",
+                                                       100,
+                                                       -1.6,
+                                                       1.6);
+  meBTLTrackNoSimToSimDirectMatchedPt_ =
+      ibook.book1D("BTLTrackNoSimToSimDirectMatchedPt",
+                   "BTL Reco track not matched with Direct Simcluster;Pt_{RECO} [GeV]",
+                   50,
+                   0,
+                   10);
+  meBTLTrackNoSimToSimSecondMatchedEta_ =
+      ibook.book1D("BTLTrackNoSimToSimSecondMatchedEta",
+                   "BTL Reco track not matched with Secondary Simcluster;#eta_{RECO}",
+                   100,
+                   -1.6,
+                   1.6);
+  meBTLTrackNoSimToSimSecondMatchedPt_ =
+      ibook.book1D("BTLTrackNoSimToSimSecondMatchedPt",
+                   "BTL Reco track not matched with Secondary Simcluster;Pt_{RECO} [GeV]",
+                   50,
+                   0,
+                   10);
+  meBTLTrackNoSimToSimLoopMatchedEta_ = ibook.book1D("BTLTrackNoSimToSimLoopMatchedEta",
+                                                     "BTL Reco track not matched with Looper Simcluster;#eta_{RECO}",
+                                                     100,
+                                                     -1.6,
+                                                     1.6);
+  meBTLTrackNoSimToSimLoopMatchedPt_ = ibook.book1D(
+      "BTLTrackNoSimToSimLoopMatchedPt", "BTL Reco track not matched with Looper Simcluster;Pt_{RECO} [GeV]", 50, 0, 10);
+  meBTLTrackNoSimToSimBackMatchedEta_ = ibook.book1D("BTLTrackNoSimToSimBackMatchedEta",
+                                                     "BTL Reco track not matched with BackSc. Simcluster;#eta_{RECO}",
+                                                     100,
+                                                     -1.6,
+                                                     1.6);
+  meBTLTrackNoSimToSimBackMatchedPt_ =
+      ibook.book1D("BTLTrackNoSimToSimBackMatchedPt",
+                   "BTL Reco track not matched with BackSc. Simcluster;Pt_{RECO} [GeV]",
+                   50,
+                   0,
+                   10);
+
   meBTLTrackFakeNoSimToSimEta_ = ibook.book1D(
       "BTLTrackFakeNoSimToSimEta", "BTL Fake association: TP with no Simcluster matched;#eta_{RECO}", 100, -1.6, 1.6);
   meBTLTrackFakeNoSimToSimPt_ = ibook.book1D(
@@ -1907,6 +2006,30 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
                    1.);
   meBTLTrackFakeNoSimToSimPull_ = ibook.book1D(
       "BTLTrackFakeNoSimToSimPull", "BTL Fake association: TP with no Simcluster matched;Time Pull", 100, -5., 5.);
+
+  meBTLTrackFakeNoSimToSimDirectEta_ = ibook.book1D(
+      "BTLTrackFakeNoSimToSimDirectEta", "BTL Fake association: TP with Direct Simcluster ;#eta_{RECO}", 100, -1.6, 1.6);
+  meBTLTrackFakeNoSimToSimDirectPt_ = ibook.book1D(
+      "BTLTrackFakeNoSimToSimDirectPt", "BTL Fake association: TP with Direct Simcluster ;Pt_{RECO} [GeV]", 50, 0, 10);
+  meBTLTrackFakeNoSimToSimSecondEta_ = ibook.book1D("BTLTrackFakeNoSimToSimSecondEta",
+                                                    "BTL Fake association: TP with Secondary Simcluster ;#eta_{RECO}",
+                                                    100,
+                                                    -1.6,
+                                                    1.6);
+  meBTLTrackFakeNoSimToSimSecondPt_ =
+      ibook.book1D("BTLTrackFakeNoSimToSimSecondPt",
+                   "BTL Fake association: TP with Secondary Simcluster ;Pt_{RECO} [GeV]",
+                   50,
+                   0,
+                   10);
+  meBTLTrackFakeNoSimToSimLoopEta_ = ibook.book1D(
+      "BTLTrackFakeNoSimToSimLoopEta", "BTL Fake association: TP with Looper Simcluster ;#eta_{RECO}", 100, -1.6, 1.6);
+  meBTLTrackFakeNoSimToSimLoopPt_ = ibook.book1D(
+      "BTLTrackFakeNoSimToSimLoopPt", "BTL Fake association: TP with Looper Simcluster ;Pt_{RECO} [GeV]", 50, 0, 10);
+  meBTLTrackFakeNoSimToSimBackEta_ = ibook.book1D(
+      "BTLTrackFakeNoSimToSimBackEta", "BTL Fake association: TP with BackSc. Simcluster ;#eta_{RECO}", 100, -1.6, 1.6);
+  meBTLTrackFakeNoSimToSimBackPt_ = ibook.book1D(
+      "BTLTrackFakeNoSimToSimBackPt", "BTL Fake association: TP with BackSc. Simcluster ;Pt_{RECO} [GeV]", 50, 0, 10);
 
   // Book the histograms for ETL
   meETLTrackTPSimMatchedEta_[0] = ibook.book1D(
