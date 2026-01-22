@@ -269,6 +269,7 @@ private:
   static constexpr double mvaL_ = 0.5;        // MVA cuts for MVA categories
   static constexpr double mvaH_ = 0.8;
   static constexpr double selNdof_ = 4.;
+  // Note: minTrackCount removed - ndof filtering is sufficient with weighted track contributions
   static constexpr double maxRank_ = 8.;
   static constexpr double maxTry_ = 10.;
   static constexpr double zWosMatchMax_ = 1.;
