@@ -25,8 +25,9 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.Reconstruction_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
-# Alpaka serial backend
+# Alpaka + CUDA backend for GPU inference
 process.load('HeterogeneousCore.AlpakaCore.ProcessAcceleratorAlpaka_cfi')
+process.load('HeterogeneousCore.CUDACore.ProcessAcceleratorCUDA_cfi')
 
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(50)
@@ -49,7 +50,8 @@ process.MessageLogger.cerr.GNNClusterizerFromAlpaka = cms.untracked.PSet(limit =
 process.MessageLogger.cerr.TrackFeatureProducer = cms.untracked.PSet(limit = cms.untracked.int32(-1))
 
 process.options = cms.untracked.PSet(
-    numberOfThreads = cms.untracked.uint32(1),
+    numberOfThreads = cms.untracked.uint32(4),
+    numberOfStreams = cms.untracked.uint32(4),
     wantSummary = cms.untracked.bool(True)
 )
 
@@ -91,7 +93,7 @@ process.unsortedOfflinePrimaryVerticesONNX = process.unsortedOfflinePrimaryVerti
             trackAssignmentThreshold = cms.double(0.0),
             numSlots = cms.int32(200),
             nnVersion = cms.string("dummy_parity_test"),
-            onnxBackend = cms.string("CPU"),
+            onnxBackend = cms.string("CUDA"),
             onnxModelPath = cms.FileInPath('RecoVertex/PrimaryVertexProducer/data/dummy_vertex_slot.onnx'),
             Tmin = cms.double(4.0),
             Tpurge = cms.double(4.0),
