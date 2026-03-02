@@ -58,15 +58,59 @@ offlinePrimaryVertices4DwithPIDWithBS = offlinePrimaryVertices4DwithPID.clone(
     vertices = "unsortedOfflinePrimaryVertices4DwithPID:WithBS"
 )
 
+
+unsortedOfflinePrimaryVerticesGNN = unsortedOfflinePrimaryVertices4D.clone(
+    TkClusParameters = cms.PSet(algorithm = cms.string("GNN2D_vect"),
+        TkDAClusParameters = cms.PSet(
+            # VertexSlotModel parameters
+            existenceThreshold = cms.double(0.5),
+            trackAssignmentThreshold = cms.double(0.4),
+            numSlots = cms.int32(180),  # Must match kNumSlots in VertexGNNSoA.h
+            nnVersion = cms.string("vertex_slot_v8p9"),
+            onnxBackend = cms.string("CPU"),  # or "CUDA" for GPU
+            onnxModelPath = cms.FileInPath('RecoVertex/PrimaryVertexProducer/data/vertex_slot_model.onnx'),
+            # Inherited parameters
+            Tmin = cms.double(4.0),
+            Tpurge = cms.double(4.0),
+            Tstop = cms.double(2.0),
+            vertexSize = cms.double(0.01),
+            d0CutOff = cms.double(3.0),
+            verbose = cms.untracked.bool(False),
+        )
+    ),
+    TrackTimesLabel = "tofPID4DnoPID:t0safe",
+    TrackTimeResosLabel = "tofPID4DnoPID:sigmat0safe",
+)
+trackWithVertexRefSelectorBeforeSortingGNN = trackWithVertexRefSelector.clone(
+    vertexTag = "unsortedOfflinePrimaryVerticesGNN",
+    ptMax = 9e99,
+    ptErrorCut = 9e99
+)
+trackRefsForJetsBeforeSortingGNN = trackRefsForJets.clone(
+    src = "trackWithVertexRefSelectorBeforeSortingGNN"
+)
+offlinePrimaryVerticesGNN = sortedPrimaryVertices.clone(
+    vertices = "unsortedOfflinePrimaryVerticesGNN",
+    particles = "trackRefsForJetsBeforeSortingGNN",
+    trackTimeTag = "tofPID4DnoPID:t0safe",
+    trackTimeResoTag = "tofPID4DnoPID:sigmat0safe",
+    assignment = dict(useTiming = True)
+)
+
+
 from SimTracker.TrackerHitAssociation.tpClusterProducer_cfi import tpClusterProducer
 from SimTracker.TrackAssociatorProducers.quickTrackAssociatorByHits_cfi import quickTrackAssociatorByHits
 from SimTracker.TrackAssociation.trackTimeValueMapProducer_cfi import trackTimeValueMapProducer
 from RecoMTD.TimingIDTools.tofPIDProducer_cfi import tofPIDProducer
+from RecoMTD.TimingIDTools.tofPIDProducerMCTruth_cfi import tofPIDProducerMCTruth
 
+#tofPIDMC=tofPIDProducerMCTruth.clone()
 tofPID4DnoPID=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVertices')
 tofPID=tofPIDProducer.clone()
 tofPID3D=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVertices')
+tofPIDGNN=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVerticesGNN')
 
 from Configuration.Eras.Modifier_phase2_timing_layer_cff import phase2_timing_layer
 phase2_timing_layer.toModify(tofPID, vtxsSrc='unsortedOfflinePrimaryVertices4D', vertexReassignment=False)
 phase2_timing_layer.toModify(tofPID3D, vertexReassignment=False)
+phase2_timing_layer.toModify(tofPIDGNN, vertexReassignment=False)
