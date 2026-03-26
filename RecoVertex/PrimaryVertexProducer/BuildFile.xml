@@ -1,15 +1,23 @@
 <use name="ofast-flag"/>
+<use name="rootcore"/>
 <use name="DataFormats/BeamSpot"/>
+<use name="DataFormats/Common"/>
+<use name="DataFormats/Portable"/>
+<use name="DataFormats/SoATemplate"/>
+<use name="DataFormats/VertexGNNReco"/>
 <use name="DataFormats/VertexReco"/>
+<use name="eigen"/>
 <use name="FWCore/Framework"/>
 <use name="FWCore/MessageLogger"/>
 <use name="FWCore/ParameterSet"/>
+<use name="HeterogeneousCore/AlpakaInterface"/>
 <use name="RecoVertex/AdaptiveVertexFit"/>
 <use name="RecoVertex/KalmanVertexFit"/>
 <use name="RecoVertex/VertexPrimitives"/>
 <use name="RecoVertex/VertexTools"/>
 <use name="TrackingTools/Records"/>
 <use name="TrackingTools/TransientTrack"/>
+<use name="PhysicsTools/ONNXRuntime"/>
 <use name="vdt_headers"/>
 <export>
   <lib name="1"/>

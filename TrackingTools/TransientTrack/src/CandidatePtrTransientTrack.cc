@@ -6,17 +6,17 @@
 #include <iostream>
 
 /*
- * ThreadSafe statement:
- * This class is using mutable member data: initialTSOS, initialTSCP,
- * trajectoryStateClosestToBeamLine. To guarantee thread safeness we
- * rely on helper member data: m_TSOS, m_TSCP and m_SCTBL, respectively.
- * Each time we'll change mutable member data we rely on specific order of the
- * operator= and the store. It is important since C++11 will guarantee that
- * the value changed by the operator= will be seen by all threads as occuring
- * before the call to store and therefore the kSet == m_TSOS.load is always
- * guaranteed to be true if and only if the thread will see the most recent
- * value of initialTSOS
- */
+ *  * ThreadSafe statement:
+ *   * This class is using mutable member data: initialTSOS, initialTSCP,
+ *    * trajectoryStateClosestToBeamLine. To guarantee thread safeness we
+ *     * rely on helper member data: m_TSOS, m_TSCP and m_SCTBL, respectively.
+ *      * Each time we'll change mutable member data we rely on specific order of the
+ *       * operator= and the store. It is important since C++11 will guarantee that
+ *        * the value changed by the operator= will be seen by all threads as occuring
+ *         * before the call to store and therefore the kSet == m_TSOS.load is always
+ *          * guaranteed to be true if and only if the thread will see the most recent
+ *           * value of initialTSOS
+ *            */
 
 using namespace reco;
 
@@ -29,7 +29,22 @@ CandidatePtrTransientTrack::CandidatePtrTransientTrack()
       theField(nullptr),
       m_TSOS(kUnset),
       m_TSCP(kUnset),
-      m_SCTBL(kUnset) {}
+      m_SCTBL(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0),
+      mtdtimeErr_(0),
+      mva_(0),
+      pathlength_(0),
+      btlchi2_(0),
+      btltimechi2_(0),
+      etlchi2_(0),
+      etltimechi2_(0),
+      time_pi_(0),
+      time_k_(0),
+      time_p_(0),
+      sigma_time_pi_(0),
+      sigma_time_k_(0),
+      sigma_time_p_(0) {}
 
 CandidatePtrTransientTrack::CandidatePtrTransientTrack(const CandidatePtr& ptr, const MagneticField* field)
     : Track(*ptr->bestTrack()),
@@ -40,7 +55,22 @@ CandidatePtrTransientTrack::CandidatePtrTransientTrack(const CandidatePtr& ptr, 
       theField(field),
       m_TSOS(kUnset),
       m_TSCP(kUnset),
-      m_SCTBL(kUnset) {
+      m_SCTBL(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0),
+      mtdtimeErr_(0),
+      mva_(0),
+      pathlength_(0),
+      btlchi2_(0),
+      btltimechi2_(0),
+      etlchi2_(0),
+      etltimechi2_(0),
+      time_pi_(0),
+      time_k_(0),
+      time_p_(0),
+      sigma_time_pi_(0),
+      sigma_time_k_(0),
+      sigma_time_p_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(*ptr->bestTrack(), field);
 }
 
@@ -56,7 +86,22 @@ CandidatePtrTransientTrack::CandidatePtrTransientTrack(const CandidatePtr& ptr,
       theField(field),
       m_TSOS(kUnset),
       m_TSCP(kUnset),
-      m_SCTBL(kUnset) {
+      m_SCTBL(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0),
+      mtdtimeErr_(0),
+      mva_(0),
+      pathlength_(0),
+      btlchi2_(0),
+      btltimechi2_(0),
+      etlchi2_(0),
+      etltimechi2_(0),
+      time_pi_(0),
+      time_k_(0),
+      time_p_(0),
+      sigma_time_pi_(0),
+      sigma_time_k_(0),
+      sigma_time_p_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(*ptr->bestTrack(), field);
 }
 
@@ -72,7 +117,22 @@ CandidatePtrTransientTrack::CandidatePtrTransientTrack(const CandidatePtr& ptr,
       m_TSOS(kUnset),
       m_TSCP(kUnset),
       m_SCTBL(kUnset),
-      theTrackingGeometry(tg) {
+      theTrackingGeometry(tg),
+      trkAssoc_(0),
+      mtdtime_(0),
+      mtdtimeErr_(0),
+      mva_(0),
+      pathlength_(0),
+      btlchi2_(0),
+      btltimechi2_(0),
+      etlchi2_(0),
+      etltimechi2_(0),
+      time_pi_(0),
+      time_k_(0),
+      time_p_(0),
+      sigma_time_pi_(0),
+      sigma_time_k_(0),
+      sigma_time_p_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(*ptr->bestTrack(), field);
 }
 
@@ -90,7 +150,22 @@ CandidatePtrTransientTrack::CandidatePtrTransientTrack(const CandidatePtr& ptr,
       m_TSOS(kUnset),
       m_TSCP(kUnset),
       m_SCTBL(kUnset),
-      theTrackingGeometry(tg) {
+      theTrackingGeometry(tg),
+      trkAssoc_(0),
+      mtdtime_(0),
+      mtdtimeErr_(0),
+      mva_(0),
+      pathlength_(0),
+      btlchi2_(0),
+      btltimechi2_(0),
+      etlchi2_(0),
+      etltimechi2_(0),
+      time_pi_(0),
+      time_k_(0),
+      time_p_(0),
+      sigma_time_pi_(0),
+      sigma_time_k_(0),
+      sigma_time_p_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(*ptr->bestTrack(), field);
 }
 
@@ -103,8 +178,22 @@ CandidatePtrTransientTrack::CandidatePtrTransientTrack(const CandidatePtrTransie
       theField(tt.field()),
       initialFTS(tt.initialFreeState()),
       m_TSOS(kUnset),
-      m_TSCP(kUnset) {
-  // see ThreadSafe statement above about the order of operator= and store
+      m_TSCP(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0),
+      mtdtimeErr_(0),
+      mva_(0),
+      pathlength_(0),
+      btlchi2_(0),
+      btltimechi2_(0),
+      etlchi2_(0),
+      etltimechi2_(0),
+      time_pi_(0),
+      time_k_(0),
+      time_p_(0),
+      sigma_time_pi_(0),
+      sigma_time_k_(0),
+      sigma_time_p_(0) {
   if (kSet == tt.m_TSOS.load()) {
     initialTSOS = tt.impactPointState();
     m_TSOS.store(kSet);
