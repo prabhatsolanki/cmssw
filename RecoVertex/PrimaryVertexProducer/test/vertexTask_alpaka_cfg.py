@@ -95,7 +95,7 @@ process.trackFeatureProducer = cms.EDProducer("vertexgnn::TrackFeatureProducer",
 # Step 2: GNNVertexProducerAlpaka (GPU inference)
 process.gnnVertexProducer = cms.EDProducer("vertexgnn::GNNVertexProducerAlpaka@alpaka",
     trackFeatures = cms.InputTag("trackFeatureProducer"),
-    model = cms.FileInPath("RecoVertex/PrimaryVertexProducer/test/vertex_slot_v17s7_alpaka.pt"),
+    model = cms.FileInPath("RecoVertex/PrimaryVertexProducer/test/vertex_slot_v17s34_alpaka.pt"),
     verbose = cms.untracked.bool(False),
 )
 
@@ -104,7 +104,7 @@ process.unsortedOfflinePrimaryVerticesGNN = process.unsortedOfflinePrimaryVertic
     TkClusParameters = cms.PSet(
         algorithm = cms.string("GNN2D_alpaka"),
         TkDAClusParameters = cms.PSet(
-            existenceThreshold = cms.double(0.01),  # Low threshold for untrained model debugging
+            existenceThreshold = cms.double(0.5),
             trackAssignmentThreshold = cms.double(0.5),
             gnnOutput = cms.InputTag("gnnVertexProducer"),
             verbose = cms.untracked.bool(False),
@@ -153,14 +153,14 @@ process.FEVTDEBUGHLToutput = cms.OutputModule("PoolOutputModule",
         dataTier = cms.untracked.string('GEN-SIM-RECO'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:revtx_step3_alpaka_v17s7.root'),
+    fileName = cms.untracked.string('file:revtx_step3_alpaka_v17s34.root'),
     outputCommands = outputCommand,
     splitLevel = cms.untracked.int32(0)
 )
 
 # TFileService for GNN track inspector output
 process.TFileService = cms.Service("TFileService",
-    fileName = cms.string("gnn_inspector_v17s7.root")
+    fileName = cms.string("gnn_inspector_v17s34.root")
 )
 
 # ============================================================================
@@ -202,5 +202,5 @@ print("Parameters:")
 print("  - existenceThreshold: 0.01")
 print("  - trackAssignmentThreshold: 0.0")
 print("  - useClusterWeights: False (using adaptive fitter weights, not GNN A)")
-print("  - model: vertex_slot_v17s7_alpaka.pt (v17s7)")
+print("  - model: vertex_slot_v17s34_alpaka.pt (v17s7)")
 print("  - backend: CUDA (GPU)")
