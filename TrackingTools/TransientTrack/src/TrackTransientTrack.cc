@@ -29,9 +29,24 @@ TrackTransientTrack::TrackTransientTrack()
       theField(nullptr),
       m_TSOS(kUnset),
       m_TSCP(kUnset),
-      m_SCTBL(kUnset)
-
-{}
+      m_SCTBL(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0.),
+      mtdtimeErr_(0.),
+      mva_(0.),
+      pathlength_(0.),
+      btlchi2_(0.),
+      btltimechi2_(0.),
+      etlchi2_(0.),
+      etltimechi2_(0.),
+      time_pi_(0.),
+      time_k_(0.),
+      time_p_(0.),
+      sigma_time_pi_(0.),
+      sigma_time_k_(0.),
+      sigma_time_p_(0.),
+      npixbarrel_(0),
+      npixendcap_(0) {}
 
 TrackTransientTrack::TrackTransientTrack(const Track& tk, const MagneticField* field)
     : Track(tk),
@@ -42,7 +57,24 @@ TrackTransientTrack::TrackTransientTrack(const Track& tk, const MagneticField* f
       theField(field),
       m_TSOS(kUnset),
       m_TSCP(kUnset),
-      m_SCTBL(kUnset) {
+      m_SCTBL(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0.),
+      mtdtimeErr_(0.),
+      mva_(0.),
+      pathlength_(0.),
+      btlchi2_(0.),
+      btltimechi2_(0.),
+      etlchi2_(0.),
+      etltimechi2_(0.),
+      time_pi_(0.),
+      time_k_(0.),
+      time_p_(0.),
+      sigma_time_pi_(0.),
+      sigma_time_k_(0.),
+      sigma_time_p_(0.),
+      npixbarrel_(0),
+      npixendcap_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(tk, field);
 }
 
@@ -58,7 +90,24 @@ TrackTransientTrack::TrackTransientTrack(const Track& tk,
       theField(field),
       m_TSOS(kUnset),
       m_TSCP(kUnset),
-      m_SCTBL(kUnset) {
+      m_SCTBL(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0.),
+      mtdtimeErr_(0.),
+      mva_(0.),
+      pathlength_(0.),
+      btlchi2_(0.),
+      btltimechi2_(0.),
+      etlchi2_(0.),
+      etltimechi2_(0.),
+      time_pi_(0.),
+      time_k_(0.),
+      time_p_(0.),
+      sigma_time_pi_(0.),
+      sigma_time_k_(0.),
+      sigma_time_p_(0.),
+      npixbarrel_(0),
+      npixendcap_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(tk, field);
 }
 
@@ -71,7 +120,24 @@ TrackTransientTrack::TrackTransientTrack(const TrackRef& tk, const MagneticField
       theField(field),
       m_TSOS(kUnset),
       m_TSCP(kUnset),
-      m_SCTBL(kUnset) {
+      m_SCTBL(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0.),
+      mtdtimeErr_(0.),
+      mva_(0.),
+      pathlength_(0.),
+      btlchi2_(0.),
+      btltimechi2_(0.),
+      etlchi2_(0.),
+      etltimechi2_(0.),
+      time_pi_(0.),
+      time_k_(0.),
+      time_p_(0.),
+      sigma_time_pi_(0.),
+      sigma_time_k_(0.),
+      sigma_time_p_(0.),
+      npixbarrel_(0),
+      npixendcap_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(*tk, field);
 }
 
@@ -87,7 +153,24 @@ TrackTransientTrack::TrackTransientTrack(const TrackRef& tk,
       theField(field),
       m_TSOS(kUnset),
       m_TSCP(kUnset),
-      m_SCTBL(kUnset) {
+      m_SCTBL(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0.),
+      mtdtimeErr_(0.),
+      mva_(0.),
+      pathlength_(0.),
+      btlchi2_(0.),
+      btltimechi2_(0.),
+      etlchi2_(0.),
+      etltimechi2_(0.),
+      time_pi_(0.),
+      time_k_(0.),
+      time_p_(0.),
+      sigma_time_pi_(0.),
+      sigma_time_k_(0.),
+      sigma_time_p_(0.),
+      npixbarrel_(0),
+      npixendcap_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(*tk, field);
 }
 
@@ -103,7 +186,24 @@ TrackTransientTrack::TrackTransientTrack(const Track& tk,
       m_TSOS(kUnset),
       m_TSCP(kUnset),
       m_SCTBL(kUnset),
-      theTrackingGeometry(tg) {
+      theTrackingGeometry(tg),
+      trkAssoc_(0),
+      mtdtime_(0.),
+      mtdtimeErr_(0.),
+      mva_(0.),
+      pathlength_(0.),
+      btlchi2_(0.),
+      btltimechi2_(0.),
+      etlchi2_(0.),
+      etltimechi2_(0.),
+      time_pi_(0.),
+      time_k_(0.),
+      time_p_(0.),
+      sigma_time_pi_(0.),
+      sigma_time_k_(0.),
+      sigma_time_p_(0.),
+      npixbarrel_(0),
+      npixendcap_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(tk, field);
 }
 
@@ -119,7 +219,24 @@ TrackTransientTrack::TrackTransientTrack(const TrackRef& tk,
       m_TSOS(kUnset),
       m_TSCP(kUnset),
       m_SCTBL(kUnset),
-      theTrackingGeometry(tg) {
+      theTrackingGeometry(tg),
+      trkAssoc_(0),
+      mtdtime_(0.),
+      mtdtimeErr_(0.),
+      mva_(0.),
+      pathlength_(0.),
+      btlchi2_(0.),
+      btltimechi2_(0.),
+      etlchi2_(0.),
+      etltimechi2_(0.),
+      time_pi_(0.),
+      time_k_(0.),
+      time_p_(0.),
+      sigma_time_pi_(0.),
+      sigma_time_k_(0.),
+      sigma_time_p_(0.),
+      npixbarrel_(0),
+      npixendcap_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(*tk, field);
 }
 
@@ -137,7 +254,24 @@ TrackTransientTrack::TrackTransientTrack(const Track& tk,
       m_TSOS(kUnset),
       m_TSCP(kUnset),
       m_SCTBL(kUnset),
-      theTrackingGeometry(tg) {
+      theTrackingGeometry(tg),
+      trkAssoc_(0),
+      mtdtime_(0.),
+      mtdtimeErr_(0.),
+      mva_(0.),
+      pathlength_(0.),
+      btlchi2_(0.),
+      btltimechi2_(0.),
+      etlchi2_(0.),
+      etltimechi2_(0.),
+      time_pi_(0.),
+      time_k_(0.),
+      time_p_(0.),
+      sigma_time_pi_(0.),
+      sigma_time_k_(0.),
+      sigma_time_p_(0.),
+      npixbarrel_(0),
+      npixendcap_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(tk, field);
 }
 
@@ -155,7 +289,24 @@ TrackTransientTrack::TrackTransientTrack(const TrackRef& tk,
       m_TSOS(kUnset),
       m_TSCP(kUnset),
       m_SCTBL(kUnset),
-      theTrackingGeometry(tg) {
+      theTrackingGeometry(tg),
+      trkAssoc_(0),
+      mtdtime_(0.),
+      mtdtimeErr_(0.),
+      mva_(0.),
+      pathlength_(0.),
+      btlchi2_(0.),
+      btltimechi2_(0.),
+      etlchi2_(0.),
+      etltimechi2_(0.),
+      time_pi_(0.),
+      time_k_(0.),
+      time_p_(0.),
+      sigma_time_pi_(0.),
+      sigma_time_k_(0.),
+      sigma_time_p_(0.),
+      npixbarrel_(0),
+      npixendcap_(0) {
   initialFTS = trajectoryStateTransform::initialFreeState(*tk, field);
 }
 
@@ -168,7 +319,25 @@ TrackTransientTrack::TrackTransientTrack(const TrackTransientTrack& tt)
       theField(tt.field()),
       initialFTS(tt.initialFreeState()),
       m_TSOS(kUnset),
-      m_TSCP(kUnset) {
+      m_TSCP(kUnset),
+      trkAssoc_(0),
+      mtdtime_(0),
+      mtdtimeErr_(0),
+      mva_(0),
+      pathlength_(0),
+      btlchi2_(0),
+      btltimechi2_(0),
+      etlchi2_(0),
+      etltimechi2_(0),
+      time_pi_(0),
+      time_k_(0),
+      time_p_(0),
+      sigma_time_pi_(0),
+      sigma_time_k_(0),
+      sigma_time_p_(0),
+      npixbarrel_(0),
+      npixendcap_(0) {
+  //trkAssoc_(tt.trackAsocMTD()), mtdtime_(tt.MTDtime()), mtdtimeErr_(tt.MTDtimeErr()), mva_(tt.MVAquality()), pathlength_(tt.pathLength()), btlchi2_(tt.btlMatch_chi2()), btltimechi2_(tt.btlMatchTime_chi2()), etlchi2_(tt.etlMatch_chi2()), etltimechi2_(tt.etlMatchTime_chi2()), time_pi_(tt.trackTime_pi()), time_k_(tt.trackTime_k()), time_p_(tt.trackTime_p()), sigma_time_pi_(tt.sigma_time_pi()), sigma_time_k_(tt.sigma_time_k()), sigma_time_p_(tt.sigma_time_p()){
   // see ThreadSafe statement above about the order of operator= and store
   if (kSet == tt.m_TSOS.load()) {
     initialTSOS = tt.impactPointState();
@@ -245,4 +414,56 @@ TrajectoryStateClosestToBeamLine TrackTransientTrack::stateAtBeamLine() const {
     return trajectoryStateClosestToBeamLine;
   }
   return tmp;
+}
+
+TrackTransientTrack::TrackTransientTrack(const TrackRef& tk,
+                                         const double time,
+                                         const double dtime,
+                                         const MagneticField* field,
+                                         const edm::ESHandle<GlobalTrackingGeometry>& tg,
+                                         const int trkAssoc,
+                                         const float mtdtime,
+                                         const float mtdtimeErr,
+                                         const float mva,
+                                         const float pathlength,
+                                         const float btlchi2,
+                                         const float btltimechi2,
+                                         const float etlchi2,
+                                         const float etltimechi2,
+                                         const float time_pi,
+                                         const float time_k,
+                                         const float time_p,
+                                         const float sigma_time_pi,
+                                         const float sigma_time_k,
+                                         const float sigma_time_p,
+                                         const int npixbarrel,
+                                         const int npixendcap)
+    : Track(*tk),
+      tkr_(tk),
+      hasTime(true),
+      timeExt_(time),
+      dtErrorExt_(dtime),
+      theField(field),
+      m_TSOS(kUnset),
+      m_TSCP(kUnset),
+      m_SCTBL(kUnset),
+      theTrackingGeometry(tg),
+      trkAssoc_(trkAssoc),
+      mtdtime_(mtdtime),
+      mtdtimeErr_(mtdtimeErr),
+      mva_(mva),
+      pathlength_(pathlength),
+      btlchi2_(btlchi2),
+      btltimechi2_(btltimechi2),
+      etlchi2_(etlchi2),
+      etltimechi2_(etltimechi2),
+      time_pi_(time_pi),
+      time_k_(time_k),
+      time_p_(time_p),
+      sigma_time_pi_(sigma_time_pi),
+      sigma_time_k_(sigma_time_k),
+      sigma_time_p_(sigma_time_p),
+      npixbarrel_(npixbarrel),
+      npixendcap_(npixendcap) {
+  initialFTS = trajectoryStateTransform::initialFreeState(*tk, field);
 }
