@@ -10,8 +10,8 @@ Usage: cmsRun mtdValidation_3way_cfg.py backend=alpaka
 import FWCore.ParameterSet.Config as cms
 import sys
 
-from Configuration.Eras.Era_Phase2C17I13M9_cff import Phase2C17I13M9
-process = cms.Process('mtdValidation', Phase2C17I13M9)
+from Configuration.Eras.Era_Phase2C22I13M9_cff import Phase2C22I13M9
+process = cms.Process('mtdValidation', Phase2C22I13M9)
 
 # ============================================================================
 # Parse command line for backend selection
@@ -39,11 +39,11 @@ process.load('Configuration.EventContent.EventContent_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 
-process.load("Configuration.Geometry.GeometryExtendedRun4D110Reco_cff")
+process.load("Configuration.Geometry.GeometryExtendedRun4D121Reco_cff")
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T33', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T35', '')
 process.load('RecoLocalFastTime.FTLClusterizer.MTDCPEESProducer_cfi')
 process.load("Configuration.StandardSequences.Reconstruction_cff")
 

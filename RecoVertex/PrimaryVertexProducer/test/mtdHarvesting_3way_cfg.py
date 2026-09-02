@@ -10,8 +10,8 @@ Usage: cmsRun mtdHarvesting_3way_cfg.py backend=alpaka
 import FWCore.ParameterSet.Config as cms
 import sys
 
-from Configuration.Eras.Era_Phase2C17I13M9_cff import Phase2C17I13M9
-process = cms.Process('mtdHarvesting', Phase2C17I13M9)
+from Configuration.Eras.Era_Phase2C22I13M9_cff import Phase2C22I13M9
+process = cms.Process('mtdHarvesting', Phase2C22I13M9)
 
 # ============================================================================
 # Parse command line for backend selection
@@ -35,7 +35,7 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.StandardSequences.EDMtoMEAtRunEnd_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
-process.load("Configuration.Geometry.GeometryExtendedRun4D110Reco_cff")
+process.load("Configuration.Geometry.GeometryExtendedRun4D121Reco_cff")
 
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
