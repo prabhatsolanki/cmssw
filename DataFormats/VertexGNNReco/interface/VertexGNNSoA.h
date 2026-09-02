@@ -5,7 +5,7 @@
  * SoA layouts for GNN vertex producer using PyTorchAlpaka.
  * 
  * Designed for proper TensorCollection integration with batch=N (tracks):
- * - Input: TrackFeaturesSoA [N tracks × 13 features]
+ * - Input: TrackFeaturesSoA [N tracks × 19 features]
  * - Output: GNNOutputSoA [N tracks × K slots per output]
  * 
  * All outputs have batch=N to enable:
@@ -26,17 +26,19 @@ namespace vertexgnn {
 
   // Fixed number of vertex slots (compile-time constant for Eigen types)
   // NOTE: Must match the TorchScript model's num_slots parameter!
-  // v17s29 model uses num_slots=220
-  constexpr int kNumSlots = 220;
+  // v17s34 model uses num_slots=250
+  constexpr int kNumSlots = 250;
 
   // Type aliases for Eigen column types
   using SlotVector = Eigen::Vector<float, kNumSlots>;           // [K] values per track
   using PIDVector = Eigen::Vector<float, 3>;                    // [3] PID weights per track (pion, kaon, proton)
 
   // =========================================================================
-  // INPUT: Track features (13 per track)
+  // INPUT: Track features (19 per track)
   // =========================================================================
-  // Layout: [N tracks] with 13 columns → TensorCollection creates [N, 13]
+  // Layout: [N tracks] with 19 columns → TensorCollection creates [N, 19]
+  // Columns 0-12: legacy features (z, dz, pt, eta, mva, pl, t_pi/k/p, s_pi/k/p, has_time)
+  // Columns 13-18: v17s32 track-quality features (chi2, ndof, validhits, npix_barrel/endcap, outermost_hit_pos)
   
   GENERATE_SOA_LAYOUT(TrackFeaturesLayout,
                       SOA_COLUMN(float, vz),
@@ -51,7 +53,13 @@ namespace vertexgnn {
                       SOA_COLUMN(float, s_pi),
                       SOA_COLUMN(float, s_k),
                       SOA_COLUMN(float, s_p),
-                      SOA_COLUMN(float, has_time))
+                      SOA_COLUMN(float, has_time),
+                      SOA_COLUMN(float, trk_chi2),
+                      SOA_COLUMN(float, trk_ndof),
+                      SOA_COLUMN(float, trk_validhits),
+                      SOA_COLUMN(float, npix_barrel),
+                      SOA_COLUMN(float, npix_endcap),
+                      SOA_COLUMN(float, outermost_hit_pos))
 
   using TrackFeaturesSoA = TrackFeaturesLayout<>;
 

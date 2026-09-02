@@ -6,7 +6,7 @@
  *
  * The framework handles automatic D2H transfer when downstream consumers need HostCollection.
  *
- * Input: TrackFeaturesHostCollection [N, 13] (from TrackFeatureProducer)
+ * Input: TrackFeaturesHostCollection [N, 19] (from TrackFeatureProducer)
  * Output: GNNOutputDeviceCollection [N, K] + [N, 3]
  */
 
@@ -75,14 +75,16 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::vertexgnn {
       auto outputRecords = deviceOutput.view().records();
 
       // =========================================================================
-      // INPUT: TensorCollection from SoA records → [N, 13]
+      // INPUT: TensorCollection from SoA records → [N, 19]
       // =========================================================================
       cms::torch::alpakatools::TensorCollection<Queue> inputs(N);
       inputs.add<::vertexgnn::TrackFeaturesSoA>("features",
           inputRecords.vz(), inputRecords.dz(), inputRecords.pt(), inputRecords.eta(),
           inputRecords.mva(), inputRecords.pl(), inputRecords.t_pi(), inputRecords.t_k(),
           inputRecords.t_p(), inputRecords.s_pi(), inputRecords.s_k(), inputRecords.s_p(),
-          inputRecords.has_time());
+          inputRecords.has_time(),
+          inputRecords.trk_chi2(), inputRecords.trk_ndof(), inputRecords.trk_validhits(),
+          inputRecords.npix_barrel(), inputRecords.npix_endcap(), inputRecords.outermost_hit_pos());
 
       // =========================================================================
       // OUTPUT: TensorCollection to SoA Eigen columns

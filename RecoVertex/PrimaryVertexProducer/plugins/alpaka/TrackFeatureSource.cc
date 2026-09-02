@@ -96,6 +96,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::vertexgnn {
         view[i].s_k() = s_k;
         view[i].s_p() = s_p;
         view[i].has_time() = has_time;
+
+        // v17s32: Track-quality features (cols 13-18)
+        view[i].trk_chi2() = std::uniform_real_distribution<float>(1.0f, 50.0f)(gen);
+        view[i].trk_ndof() = std::uniform_real_distribution<float>(5.0f, 30.0f)(gen);
+        view[i].trk_validhits() = static_cast<float>(std::uniform_int_distribution<int>(5, 25)(gen));
+        view[i].npix_barrel() = static_cast<float>(std::uniform_int_distribution<int>(0, 5)(gen));
+        view[i].npix_endcap() = static_cast<float>(std::uniform_int_distribution<int>(0, 5)(gen));
+        view[i].outermost_hit_pos() = std::uniform_real_distribution<float>(0.0f, 120.0f)(gen);
       }
 
       // Put output into event

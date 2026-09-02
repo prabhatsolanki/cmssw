@@ -2,13 +2,14 @@
  * TrackFeatureProducer - Standard EDProducer for track features
  *
  * Consumes real generalTracks with MTD timing and produces TrackFeaturesHostCollection
- * with 13 features per track (identical to GNNClusterizer.cc feature extraction).
+ * with 19 features per track (v17s32 model layout).
  *
  * IMPORTANT: Uses the same TrackFilterForPVFinding as PrimaryVertexProducer
  * to ensure track selection matches. This is critical for track index alignment
  * with the Alpaka GNN pipeline.
  *
- * Features: vz, dz, pt, eta, mva, pl, t_pi, t_k, t_p, s_pi, s_k, s_p, has_time
+ * Features (cols 0-12): vz, dz, pt, eta, mva, pl, t_pi, t_k, t_p, s_pi, s_k, s_p, has_time
+ * Features (cols 13-18): trk_chi2, trk_ndof, trk_validhits, npix_barrel, npix_endcap, outermost_hit_pos
  *
  * Note: This is a standard EDProducer (not Alpaka) because:
  *   1. Feature extraction is CPU-bound, no GPU needed
@@ -76,6 +77,7 @@ namespace vertexgnn {
           sigmaTrkTimePToken_(consumes<edm::ValueMap<float>>(params.getParameter<edm::InputTag>("sigmatofpSrc"))),
           npixBarrelToken_(consumes<edm::ValueMap<int>>(params.getParameter<edm::InputTag>("npixBarrelSrc"))),
           npixEndcapToken_(consumes<edm::ValueMap<int>>(params.getParameter<edm::InputTag>("npixEndcapSrc"))),
+          outermostHitPositionToken_(consumes<edm::ValueMap<float>>(params.getParameter<edm::InputTag>("outermostHitPositionSrc"))),
           trackMTDTimeQualityToken_(consumes<edm::ValueMap<float>>(params.getParameter<edm::InputTag>("trackMTDTimeQualityVMapTag"))),
           ttbToken_(esConsumes(edm::ESInputTag("", "TransientTrackBuilder"))),
           minTrackTimeQuality_(params.getParameter<double>("minTrackTimeQuality")),
@@ -115,6 +117,7 @@ namespace vertexgnn {
       desc.add<edm::InputTag>("sigmatofpSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofP"));
       desc.add<edm::InputTag>("npixBarrelSrc", edm::InputTag("trackExtenderWithMTD", "npixBarrel"));
       desc.add<edm::InputTag>("npixEndcapSrc", edm::InputTag("trackExtenderWithMTD", "npixEndcap"));
+      desc.add<edm::InputTag>("outermostHitPositionSrc", edm::InputTag("trackExtenderWithMTD:generalTrackOutermostHitPosition"));
       desc.add<double>("minTrackTimeQuality", 0.8);
       desc.add<bool>("useMVACut", false);
       desc.add<bool>("useTrackFilter", true)->setComment("Apply same track filter as PrimaryVertexProducer");
@@ -152,6 +155,7 @@ namespace vertexgnn {
       auto const& sigmatrkPTime = event.get(sigmaTrkTimePToken_);
       auto const& npixBarrel = event.get(npixBarrelToken_);
       auto const& npixEndcap = event.get(npixEndcapToken_);
+      auto const& outermostHitPosition = event.get(outermostHitPositionToken_);
       auto const& trackMTDTimeQualities = event.get(trackMTDTimeQualityToken_);
 
       // Get TransientTrackBuilder
@@ -272,6 +276,16 @@ namespace vertexgnn {
         view[i].s_k() = sanitize(feat_s_k);
         view[i].s_p() = sanitize(feat_s_p);
         view[i].has_time() = has_time;
+
+        // v17s32: Track-quality features (cols 13-18)
+        // Uses trackBaseRef() to index ValueMaps — same pattern as MVATrainingNtuple.cc
+        reco::TrackBaseRef trackref = ttrack.trackBaseRef();
+        view[i].trk_chi2() = sanitize(static_cast<float>(ttrack.track().chi2()));
+        view[i].trk_ndof() = sanitize(static_cast<float>(ttrack.track().ndof()));
+        view[i].trk_validhits() = static_cast<float>(ttrack.track().numberOfValidHits());
+        view[i].npix_barrel() = static_cast<float>(npixBarrel[trackref]);
+        view[i].npix_endcap() = static_cast<float>(npixEndcap[trackref]);
+        view[i].outermost_hit_pos() = sanitize(outermostHitPosition[trackref]);
       }
 
       if (verbose_) {
@@ -304,6 +318,7 @@ namespace vertexgnn {
     const edm::EDGetTokenT<edm::ValueMap<float>> sigmaTrkTimePToken_;
     const edm::EDGetTokenT<edm::ValueMap<int>> npixBarrelToken_;
     const edm::EDGetTokenT<edm::ValueMap<int>> npixEndcapToken_;
+    const edm::EDGetTokenT<edm::ValueMap<float>> outermostHitPositionToken_;
     const edm::EDGetTokenT<edm::ValueMap<float>> trackMTDTimeQualityToken_;
     const edm::ESGetToken<TransientTrackBuilder, TransientTrackRecord> ttbToken_;
     
