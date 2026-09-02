@@ -51,7 +51,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::vertexgnn {
       }
 
       // Allocate output collection on device
-      auto trackFeatures = TrackFeaturesDeviceCollection(N, event.queue());
+      auto trackFeatures = TrackFeaturesDeviceCollection(event.queue(), N);
       auto view = trackFeatures.view();
 
       // Generate random features (for testing)

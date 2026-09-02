@@ -200,7 +200,7 @@ namespace vertexgnn {
       }
 
       // Allocate output HostCollection
-      auto trackFeatures = std::make_unique<TrackFeaturesHostCollection>(N, cms::alpakatools::host());
+      auto trackFeatures = std::make_unique<TrackFeaturesHostCollection>(cms::alpakatools::host(), N);
       auto view = trackFeatures->view();
 
       // Extract features from each TransientTrack

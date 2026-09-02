@@ -64,11 +64,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::vertexgnn {
       }
 
       // Copy input to device for GPU inference
-      TrackFeaturesDeviceCollection deviceInput(N, event.queue());
+      TrackFeaturesDeviceCollection deviceInput(event.queue(), N);
       alpaka::memcpy(event.queue(), deviceInput.buffer(), hostInput.buffer());
 
       // Allocate output on device
-      GNNOutputDeviceCollection deviceOutput(N, event.queue());
+      GNNOutputDeviceCollection deviceOutput(event.queue(), N);
 
       // Get SoA records for TensorCollection
       auto inputRecords = deviceInput.const_view().records();
