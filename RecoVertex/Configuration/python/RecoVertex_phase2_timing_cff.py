@@ -76,12 +76,12 @@ trackFeatureProducer = cms.EDProducer("vertexgnn::TrackFeatureProducer",
 )
 gnnVertexProducer = cms.EDProducer("vertexgnn::GNNVertexProducerAlpaka@alpaka",
     trackFeatures = cms.InputTag("trackFeatureProducer"),
-    model = cms.FileInPath("RecoVertex/PrimaryVertexProducer/data/vertex_slot_v17s29_alpaka.pt"),
+    model = cms.FileInPath("RecoVertex/PrimaryVertexProducer/data/vertex_slot_v17s34_alpaka.pt"),
 )
 unsortedOfflinePrimaryVerticesGNN = unsortedOfflinePrimaryVertices4D.clone(
     TkClusParameters = cms.PSet(algorithm = cms.string("GNN2D_alpaka"),
         TkDAClusParameters = cms.PSet(
-            existenceThreshold = cms.double(0.01),
+            existenceThreshold = cms.double(0.5),
             trackAssignmentThreshold = cms.double(0.5),
             gnnOutput = cms.InputTag("gnnVertexProducer"),
         )

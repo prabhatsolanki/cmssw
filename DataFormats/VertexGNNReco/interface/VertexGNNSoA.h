@@ -9,7 +9,7 @@
 
 namespace vertexgnn {
 
-  constexpr int kNumSlots = 220;
+  constexpr int kNumSlots = 250;
 
   using SlotVector = Eigen::Vector<float, kNumSlots>;
   using PIDVector = Eigen::Vector<float, 3>;
@@ -27,7 +27,13 @@ namespace vertexgnn {
                       SOA_COLUMN(float, s_pi),
                       SOA_COLUMN(float, s_k),
                       SOA_COLUMN(float, s_p),
-                      SOA_COLUMN(float, has_time))
+                      SOA_COLUMN(float, has_time),
+                      SOA_COLUMN(float, trk_chi2),
+                      SOA_COLUMN(float, trk_ndof),
+                      SOA_COLUMN(float, trk_validhits),
+                      SOA_COLUMN(float, npix_barrel),
+                      SOA_COLUMN(float, npix_endcap),
+                      SOA_COLUMN(float, outermost_hit_pos))
 
   using TrackFeaturesSoA = TrackFeaturesLayout<>;
 

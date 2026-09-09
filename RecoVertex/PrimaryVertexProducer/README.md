@@ -23,7 +23,7 @@ The number of slots `K` is the compile-time constant `vertexgnn::kNumSlots`
 
 ## Model files
 
-`data/vertex_slot_<version>_alpaka.pt`: TorchScript exported from the training with
+`data/vertex_slot_<version>_alpaka.pt` (v17s34: 19 features, 250 slots): TorchScript exported from the training with
 `test/export_vertex_slot_for_alpaka.py`, which wraps the 5-output inference model so that every output
 has one row per track (`--num-slots` must be `kNumSlots`, `--num-features` the number of columns).
 

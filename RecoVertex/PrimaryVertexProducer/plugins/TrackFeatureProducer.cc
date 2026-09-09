@@ -15,6 +15,7 @@
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace vertexgnn {
@@ -34,6 +35,10 @@ namespace vertexgnn {
           sigmaTofPiToken_(consumes<edm::ValueMap<float>>(params.getParameter<edm::InputTag>("sigmatofpiSrc"))),
           sigmaTofKToken_(consumes<edm::ValueMap<float>>(params.getParameter<edm::InputTag>("sigmatofkSrc"))),
           sigmaTofPToken_(consumes<edm::ValueMap<float>>(params.getParameter<edm::InputTag>("sigmatofpSrc"))),
+          npixBarrelToken_(consumes<edm::ValueMap<int>>(params.getParameter<edm::InputTag>("npixBarrelSrc"))),
+          npixEndcapToken_(consumes<edm::ValueMap<int>>(params.getParameter<edm::InputTag>("npixEndcapSrc"))),
+          outermostHitPositionToken_(
+              consumes<edm::ValueMap<float>>(params.getParameter<edm::InputTag>("outermostHitPositionSrc"))),
           ttbToken_(esConsumes(edm::ESInputTag("", "TransientTrackBuilder"))),
           trackFilter_(params.getParameter<edm::ParameterSet>("TkFilterParameters")) {
       produces<TrackFeaturesHostCollection>();
@@ -53,6 +58,10 @@ namespace vertexgnn {
       desc.add<edm::InputTag>("sigmatofpiSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofPi"));
       desc.add<edm::InputTag>("sigmatofkSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofK"));
       desc.add<edm::InputTag>("sigmatofpSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofP"));
+      desc.add<edm::InputTag>("npixBarrelSrc", edm::InputTag("trackExtenderWithMTD", "npixBarrel"));
+      desc.add<edm::InputTag>("npixEndcapSrc", edm::InputTag("trackExtenderWithMTD", "npixEndcap"));
+      desc.add<edm::InputTag>("outermostHitPositionSrc",
+                              edm::InputTag("trackExtenderWithMTD:generalTrackOutermostHitPosition"));
       edm::ParameterSetDescription filterDesc;
       TrackFilterForPVFinding::fillPSetDescription(filterDesc);
       desc.add<edm::ParameterSetDescription>("TkFilterParameters", filterDesc)
@@ -73,6 +82,9 @@ namespace vertexgnn {
       const auto& sigmaTofPi = event.get(sigmaTofPiToken_);
       const auto& sigmaTofK = event.get(sigmaTofKToken_);
       const auto& sigmaTofP = event.get(sigmaTofPToken_);
+      const auto& npixBarrel = event.get(npixBarrelToken_);
+      const auto& npixEndcap = event.get(npixEndcapToken_);
+      const auto& outermostHitPosition = event.get(outermostHitPositionToken_);
 
       const auto& ttBuilder = eventSetup.getData(ttbToken_);
       const std::vector<reco::TransientTrack> selectedTracks =
@@ -123,6 +135,12 @@ namespace vertexgnn {
         view[i].s_k() = sanitize(s_k);
         view[i].s_p() = sanitize(s_p);
         view[i].has_time() = (trackMva >= 0.f) ? 1.f : 0.f;
+        view[i].trk_chi2() = sanitize(static_cast<float>(track.chi2()));
+        view[i].trk_ndof() = sanitize(static_cast<float>(track.ndof()));
+        view[i].trk_validhits() = static_cast<float>(track.numberOfValidHits());
+        view[i].npix_barrel() = static_cast<float>(npixBarrel[ref]);
+        view[i].npix_endcap() = static_cast<float>(npixEndcap[ref]);
+        view[i].outermost_hit_pos() = sanitize(outermostHitPosition[ref]);
       }
       event.put(std::move(features));
     }
@@ -148,6 +166,9 @@ namespace vertexgnn {
     const edm::EDGetTokenT<edm::ValueMap<float>> sigmaTofPiToken_;
     const edm::EDGetTokenT<edm::ValueMap<float>> sigmaTofKToken_;
     const edm::EDGetTokenT<edm::ValueMap<float>> sigmaTofPToken_;
+    const edm::EDGetTokenT<edm::ValueMap<int>> npixBarrelToken_;
+    const edm::EDGetTokenT<edm::ValueMap<int>> npixEndcapToken_;
+    const edm::EDGetTokenT<edm::ValueMap<float>> outermostHitPositionToken_;
     const edm::ESGetToken<TransientTrackBuilder, TransientTrackRecord> ttbToken_;
     const TrackFilterForPVFinding trackFilter_;
   };

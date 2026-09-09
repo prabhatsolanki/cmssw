@@ -36,7 +36,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::vertexgnn {
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
       desc.add<edm::FileInPath>("model",
-                                edm::FileInPath("RecoVertex/PrimaryVertexProducer/data/vertex_slot_v17s29_alpaka.pt"));
+                                edm::FileInPath("RecoVertex/PrimaryVertexProducer/data/vertex_slot_v17s34_alpaka.pt"));
       desc.add<edm::InputTag>("trackFeatures", edm::InputTag("trackFeatureProducer"));
       desc.addUntracked<bool>("verbose", false);
       descriptions.addWithDefaultLabel(desc);
@@ -73,7 +73,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::vertexgnn {
                                                 inputRecords.s_pi(),
                                                 inputRecords.s_k(),
                                                 inputRecords.s_p(),
-                                                inputRecords.has_time());
+                                                inputRecords.has_time(),
+                                                inputRecords.trk_chi2(),
+                                                inputRecords.trk_ndof(),
+                                                inputRecords.trk_validhits(),
+                                                inputRecords.npix_barrel(),
+                                                inputRecords.npix_endcap(),
+                                                inputRecords.outermost_hit_pos());
 
       cms::torch::alpakatools::TensorCollection<Queue> outputs(N);
       outputs.add<::vertexgnn::GNNOutputSoA>("A", outputRecords.A());
