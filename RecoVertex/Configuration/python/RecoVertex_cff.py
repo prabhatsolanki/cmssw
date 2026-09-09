@@ -57,7 +57,11 @@ from RecoVertex.Configuration.RecoVertex_phase2_timing_cff import (tpClusterProd
                                                                   trackRefsForJetsBeforeSorting4D,
                                                                   offlinePrimaryVertices4D,
                                                                   offlinePrimaryVertices4DWithBS,
-                                                                  unsortedOfflinePrimaryVerticesGNN,
+                                                                  trackFeatureProducer,
+                                                                  gnnVertexProducer,
+                                                                  trackFeatureProducer,
+                                            gnnVertexProducer,
+                                            unsortedOfflinePrimaryVerticesGNN,
                                                                   trackWithVertexRefSelectorBeforeSortingGNN,
                                                                   trackRefsForJetsBeforeSortingGNN,
                                                                   offlinePrimaryVerticesGNN)

@@ -1,28 +1,21 @@
-#ifndef GNNClusterizerFromAlpaka_h
-#define GNNClusterizerFromAlpaka_h
+#ifndef RecoVertex_PrimaryVertexProducer_GNNClusterizerFromAlpaka_h
+#define RecoVertex_PrimaryVertexProducer_GNNClusterizerFromAlpaka_h
 
 /**
- * GNNClusterizerFromAlpaka - Builds TransientVertex objects from Alpaka SoA outputs
+ * GNNClusterizerFromAlpaka - builds TransientVertex candidates from the vertex-slot GNN outputs
  *
- * This clusterizer does NOT run inference - it CONSUMES the already-computed
- * outputs from GNNVertexProducerAlpaka:
- *   - Slot predictions: z_hat, t_hat, p per slot [K]
- *   - PID weights: pi_0, pi_1, pi_2 per track [N]
- *   - Assignment probabilities: A[N,K] track-to-slot
- *
- * Pipeline:
- *   GNNVertexProducerAlpaka (runs PyTorchAlpaka inference)
- *        ↓
- *   GNNClusterizerFromAlpaka (builds vertices from SoA)
- *        ↓
- *   std::vector<TransientVertex>
+ * No inference happens here: GNNVertexProducerAlpaka runs the model and PrimaryVertexProducer
+ * unpacks its output SoA (per track: highest-probability slot and that probability; per slot:
+ * predicted z and existence probability). A slot becomes a vertex candidate if its existence
+ * probability exceeds existenceThreshold and at least one track points to it; a track joins its
+ * slot if its assignment probability is at least trackAssignmentThreshold. The candidate position
+ * is the predicted z (the vertex fit refines it) and the track weights are the probabilities.
  */
 
-#include "RecoVertex/PrimaryVertexProducer/interface/TrackClusterizerInZ.h"
-#include "RecoVertex/VertexPrimitives/interface/TransientVertex.h"
-#include "TrackingTools/TransientTrack/interface/TransientTrack.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ParameterSet/interface/ParameterSetDescription.h"
+#include "RecoVertex/VertexPrimitives/interface/TransientVertex.h"
+#include "TrackingTools/TransientTrack/interface/TransientTrack.h"
 
 #include <vector>
 
@@ -32,37 +25,20 @@ namespace vertexgnn {
   public:
     GNNClusterizerFromAlpaka(const edm::ParameterSet& conf);
 
-    /**
-     * Build vertices from pre-computed GNN outputs
-     *
-     * @param tracks           Original TransientTrack collection
-     * @param A_flat           Assignment matrix A[N*K] (flattened)
-     * @param z_hat            Predicted z positions [K]
-     * @param t_hat            Predicted t positions [K]
-     * @param p                Slot existence probabilities [K]
-     * @param pi_0..pi_2       PID weights per track [N] (pion, kaon, proton)
-     * @param N                Number of tracks
-     * @param K                Number of slots
-     */
-    std::vector<TransientVertex> vertices(
-        const std::vector<reco::TransientTrack>& tracks,
-        const float* A_flat,
-        const float* z_hat,
-        const float* t_hat,
-        const float* p,
-        const float* pi_0,
-        const float* pi_1,
-        const float* pi_2,
-        int N,
-        int K
-    ) const;
+    // tracks[i] points to slot trackSlot[i] with probability trackMaxProb[i]; z_hat and p have one
+    // entry per slot
+    std::vector<TransientVertex> vertices(const std::vector<reco::TransientTrack>& tracks,
+                                          const std::vector<int>& trackSlot,
+                                          const std::vector<float>& trackMaxProb,
+                                          const std::vector<float>& z_hat,
+                                          const std::vector<float>& p) const;
 
     static void fillPSetDescription(edm::ParameterSetDescription& desc);
 
   private:
-    double existenceThreshold_;
-    double trackAssignmentThreshold_;
-    bool verbose_;
+    const double existenceThreshold_;
+    const double trackAssignmentThreshold_;
+    const bool verbose_;
   };
 
 }  // namespace vertexgnn

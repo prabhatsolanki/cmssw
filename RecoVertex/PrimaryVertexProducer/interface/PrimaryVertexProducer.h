@@ -35,12 +35,12 @@
 #include "RecoVertex/PrimaryVertexProducer/interface/TrackClusterizerInZ.h"
 #include "RecoVertex/PrimaryVertexProducer/interface/DAClusterizerInZ_vect.h"
 #include "RecoVertex/PrimaryVertexProducer/interface/DAClusterizerInZT_vect.h"
-#include "RecoVertex/PrimaryVertexProducer/interface/GNNClusterizer.h"
-#include "RecoVertex/PrimaryVertexProducer/interface/GNNClusterizerFromAlpaka.h"
-#include "DataFormats/VertexGNNReco/interface/VertexGNNHostCollection.h"
+
 #include "RecoVertex/PrimaryVertexProducer/interface/TrackFilterForPVFinding.h"
 #include "RecoVertex/PrimaryVertexProducer/interface/HITrackFilterForPVFinding.h"
 #include "RecoVertex/PrimaryVertexProducer/interface/GapClusterizerInZ.h"
+#include "RecoVertex/PrimaryVertexProducer/interface/GNNClusterizerFromAlpaka.h"
+#include "DataFormats/VertexGNNReco/interface/VertexGNNHostCollection.h"
 #include "RecoVertex/KalmanVertexFit/interface/KalmanVertexFitter.h"
 #include "RecoVertex/AdaptiveVertexFit/interface/AdaptiveVertexFitter.h"
 #include "RecoVertex/PrimaryVertexProducer/interface/PrimaryVertexFitterBase.h"
@@ -57,27 +57,22 @@
 #include "RecoVertex/PrimaryVertexProducer/interface/VertexTimeAlgorithmBase.h"
 #include "RecoVertex/PrimaryVertexProducer/interface/VertexTimeAlgorithmFromTracksPID.h"
 #include "RecoVertex/PrimaryVertexProducer/interface/VertexTimeAlgorithmLegacy4D.h"
-#include "PhysicsTools/ONNXRuntime/interface/ONNXRuntime.h"
-#include <iostream>
-#include <vector>
+
 //
 // class declaration
 //
-using namespace cms::Ort;
 
-class PrimaryVertexProducer : public edm::stream::EDProducer<edm::GlobalCache<ONNXRuntime>> {
+class PrimaryVertexProducer : public edm::stream::EDProducer<> {
 public:
-  PrimaryVertexProducer(const edm::ParameterSet&, const ONNXRuntime*);
+  PrimaryVertexProducer(const edm::ParameterSet&);
   ~PrimaryVertexProducer() override;
 
   void produce(edm::Event&, const edm::EventSetup&) override;
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+
   // access to config
   edm::ParameterSet config() const { return theConfig; }
-
-  static std::unique_ptr<ONNXRuntime> initializeGlobalCache(const edm::ParameterSet&);
-  static void globalEndJob(const ONNXRuntime*);
 
 private:
   // ----------member data ---------------------------
@@ -106,9 +101,9 @@ private:
 
   edm::EDGetTokenT<reco::BeamSpot> bsToken;
   edm::EDGetTokenT<reco::TrackCollection> trkToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> trkTimesToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> trkTimeResosToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> trackMTDTimeQualityToken;
+  edm::EDGetTokenT<edm::ValueMap<float> > trkTimesToken;
+  edm::EDGetTokenT<edm::ValueMap<float> > trkTimeResosToken;
+  edm::EDGetTokenT<edm::ValueMap<float> > trackMTDTimeQualityToken;
   edm::EDGetTokenT<edm::ValueMap<int>> trkMTDAssocToken;
   edm::EDGetTokenT<edm::ValueMap<float>> MTDtimeToken;
   edm::EDGetTokenT<edm::ValueMap<float>> sigmaMTDtimeToken;
@@ -125,13 +120,17 @@ private:
   edm::EDGetTokenT<edm::ValueMap<float>> sigmaTrkTimePToken;
   edm::EDGetTokenT<edm::ValueMap<int>> npixBarrelToken;
   edm::EDGetTokenT<edm::ValueMap<int>> npixEndcapToken;
+
   bool useTransientTrackTime_;
   bool useMVASelection_;
   edm::ValueMap<float> trackMTDTimeQualities_;
   edm::ValueMap<float> trackTimes_;
   double minTrackTimeQuality_;
-  
-  // Alpaka GNN backend support
+
+  // vertex-slot GNN (Alpaka backend): inference runs upstream in GNNVertexProducerAlpaka, here the
+  // clusters are built from its output SoA and the per-track outputs are stored as ValueMaps
+  std::vector<TransientVertex> clustersFromGNN(edm::Event& iEvent,
+                                              const std::vector<reco::TransientTrack>& seltks) const;
   bool useAlpakaGNN_ = false;
   std::unique_ptr<vertexgnn::GNNClusterizerFromAlpaka> alpakaClusterizer_;
   edm::EDGetTokenT<vertexgnn::GNNOutputHostCollection> gnnOutputToken_;

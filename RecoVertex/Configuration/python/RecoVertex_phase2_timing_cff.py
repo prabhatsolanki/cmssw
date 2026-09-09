@@ -59,27 +59,26 @@ offlinePrimaryVertices4DwithPIDWithBS = offlinePrimaryVertices4DwithPID.clone(
 )
 
 
+# vertex-slot GNN: track features (CPU) -> model inference (Alpaka) -> clustering in the PrimaryVertexProducer
+trackFeatureProducer = cms.EDProducer("vertexgnn::TrackFeatureProducer",
+    TkFilterParameters = unsortedOfflinePrimaryVertices.TkFilterParameters.clone()
+)
+gnnVertexProducer = cms.EDProducer("vertexgnn::GNNVertexProducerAlpaka@alpaka",
+    trackFeatures = cms.InputTag("trackFeatureProducer"),
+    model = cms.FileInPath("RecoVertex/PrimaryVertexProducer/test/vertex_slot_v17s29_alpaka.pt"),
+)
 unsortedOfflinePrimaryVerticesGNN = unsortedOfflinePrimaryVertices4D.clone(
-    TkClusParameters = cms.PSet(algorithm = cms.string("GNN2D_vect"),
+    TkClusParameters = cms.PSet(algorithm = cms.string("GNN2D_alpaka"),
         TkDAClusParameters = cms.PSet(
-            # VertexSlotModel parameters
-            existenceThreshold = cms.double(0.5),
-            trackAssignmentThreshold = cms.double(0.4),
-            numSlots = cms.int32(220),  # Must match kNumSlots in VertexGNNSoA.h
-            nnVersion = cms.string("vertex_slot_v8p9"),
-            onnxBackend = cms.string("CPU"),  # or "CUDA" for GPU
-            onnxModelPath = cms.FileInPath('RecoVertex/PrimaryVertexProducer/data/vertex_slot_model.onnx'),
-            # Inherited parameters
-            Tmin = cms.double(4.0),
-            Tpurge = cms.double(4.0),
-            Tstop = cms.double(2.0),
-            vertexSize = cms.double(0.01),
-            d0CutOff = cms.double(3.0),
-            verbose = cms.untracked.bool(False),
+            existenceThreshold = cms.double(0.01),
+            trackAssignmentThreshold = cms.double(0.5),
+            gnnOutput = cms.InputTag("gnnVertexProducer"),
         )
     ),
     TrackTimesLabel = "tofPID4DnoPID:t0safe",
     TrackTimeResosLabel = "tofPID4DnoPID:sigmat0safe",
+    vertexCollections = {0: dict(useClusterWeights = cms.untracked.bool(False)),
+                         1: dict(useClusterWeights = cms.untracked.bool(False))}
 )
 trackWithVertexRefSelectorBeforeSortingGNN = trackWithVertexRefSelector.clone(
     vertexTag = "unsortedOfflinePrimaryVerticesGNN",
