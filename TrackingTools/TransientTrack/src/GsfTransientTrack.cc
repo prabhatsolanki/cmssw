@@ -20,22 +20,7 @@ GsfTransientTrack::GsfTransientTrack()
       initialTSOSAvailable(false),
       initialTSCPAvailable(false),
       blStateAvailable(false),
-      theTIPExtrapolator(),
-      trkAssoc_(0.),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {}
+      theTIPExtrapolator() {}
 
 GsfTransientTrack::GsfTransientTrack(const GsfTrack& tk, const MagneticField* field)
     : GsfTrack(tk),
@@ -46,22 +31,7 @@ GsfTransientTrack::GsfTransientTrack(const GsfTrack& tk, const MagneticField* fi
       theField(field),
       initialTSOSAvailable(false),
       initialTSCPAvailable(false),
-      blStateAvailable(false),
-      trkAssoc_(0),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {
+      blStateAvailable(false) {
   initialFTS = trajectoryStateTransform::initialFreeState(tk, field);
 }
 
@@ -77,22 +47,7 @@ GsfTransientTrack::GsfTransientTrack(const GsfTrack& tk,
       theField(field),
       initialTSOSAvailable(false),
       initialTSCPAvailable(false),
-      blStateAvailable(false),
-      trkAssoc_(0),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {
+      blStateAvailable(false) {
   initialFTS = trajectoryStateTransform::initialFreeState(tk, field);
 }
 
@@ -106,22 +61,7 @@ GsfTransientTrack::GsfTransientTrack(const GsfTrackRef& tk, const MagneticField*
       initialTSOSAvailable(false),
       initialTSCPAvailable(false),
       blStateAvailable(false),
-      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)),
-      trkAssoc_(0),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {
+      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)) {
   initialFTS = trajectoryStateTransform::initialFreeState(*tk, field);
 }
 
@@ -138,22 +78,7 @@ GsfTransientTrack::GsfTransientTrack(const GsfTrackRef& tk,
       initialTSOSAvailable(false),
       initialTSCPAvailable(false),
       blStateAvailable(false),
-      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)),
-      trkAssoc_(0),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {
+      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)) {
   initialFTS = trajectoryStateTransform::initialFreeState(*tk, field);
 }
 
@@ -170,22 +95,7 @@ GsfTransientTrack::GsfTransientTrack(const GsfTrack& tk,
       initialTSCPAvailable(false),
       blStateAvailable(false),
       theTrackingGeometry(tg),
-      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)),
-      trkAssoc_(0),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {
+      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)) {
   initialFTS = trajectoryStateTransform::initialFreeState(tk, field);
 }
 
@@ -204,22 +114,7 @@ GsfTransientTrack::GsfTransientTrack(const GsfTrack& tk,
       initialTSCPAvailable(false),
       blStateAvailable(false),
       theTrackingGeometry(tg),
-      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)),
-      trkAssoc_(0),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {
+      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)) {
   initialFTS = trajectoryStateTransform::initialFreeState(tk, field);
 }
 
@@ -236,22 +131,7 @@ GsfTransientTrack::GsfTransientTrack(const GsfTrackRef& tk,
       initialTSCPAvailable(false),
       blStateAvailable(false),
       theTrackingGeometry(tg),
-      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)),
-      trkAssoc_(0),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {
+      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)) {
   initialFTS = trajectoryStateTransform::initialFreeState(*tk, field);
 }
 
@@ -270,22 +150,7 @@ GsfTransientTrack::GsfTransientTrack(const GsfTrackRef& tk,
       initialTSCPAvailable(false),
       blStateAvailable(false),
       theTrackingGeometry(tg),
-      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)),
-      trkAssoc_(0),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {
+      theTIPExtrapolator(AnalyticalPropagator(field, alongMomentum)) {
   initialFTS = trajectoryStateTransform::initialFreeState(*tk, field);
 }
 
@@ -299,22 +164,7 @@ GsfTransientTrack::GsfTransientTrack(const GsfTransientTrack& tt)
       initialFTS(tt.initialFreeState()),
       initialTSOSAvailable(false),
       initialTSCPAvailable(false),
-      theTIPExtrapolator(AnalyticalPropagator(tt.field(), alongMomentum)),
-      trkAssoc_(0),
-      mtdtime_(0.),
-      mtdtimeErr_(0.),
-      mva_(0.),
-      pathlength_(0.),
-      btlchi2_(0.),
-      btltimechi2_(0.),
-      etlchi2_(0.),
-      etltimechi2_(0.),
-      time_pi_(0.),
-      time_k_(0.),
-      time_p_(0.),
-      sigma_time_pi_(0.),
-      sigma_time_k_(0.),
-      sigma_time_p_(0.) {
+      theTIPExtrapolator(AnalyticalPropagator(tt.field(), alongMomentum)) {
   if (tt.initialTSOSAvailable) {
     initialTSOS = tt.impactPointState();
     initialTSOSAvailable = true;

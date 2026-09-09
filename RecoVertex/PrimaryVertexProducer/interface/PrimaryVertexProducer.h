@@ -104,22 +104,6 @@ private:
   edm::EDGetTokenT<edm::ValueMap<float> > trkTimesToken;
   edm::EDGetTokenT<edm::ValueMap<float> > trkTimeResosToken;
   edm::EDGetTokenT<edm::ValueMap<float> > trackMTDTimeQualityToken;
-  edm::EDGetTokenT<edm::ValueMap<int>> trkMTDAssocToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> MTDtimeToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> sigmaMTDtimeToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> pathLengthToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> btlMatchChi2Token;
-  edm::EDGetTokenT<edm::ValueMap<float>> btlMatchTime_Chi2Token;
-  edm::EDGetTokenT<edm::ValueMap<float>> etlMatchChi2Token;
-  edm::EDGetTokenT<edm::ValueMap<float>> etlMatchTime_Chi2Token;
-  edm::EDGetTokenT<edm::ValueMap<float>> trkTimePiToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> trkTimeKToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> trkTimePToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> sigmaTrkTimePiToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> sigmaTrkTimeKToken;
-  edm::EDGetTokenT<edm::ValueMap<float>> sigmaTrkTimePToken;
-  edm::EDGetTokenT<edm::ValueMap<int>> npixBarrelToken;
-  edm::EDGetTokenT<edm::ValueMap<int>> npixEndcapToken;
 
   bool useTransientTrackTime_;
   bool useMVASelection_;

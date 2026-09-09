@@ -76,22 +76,6 @@ PrimaryVertexProducer::PrimaryVertexProducer(const edm::ParameterSet& conf)
     trackMTDTimeQualityToken =
         consumes<edm::ValueMap<float> >(conf.getParameter<edm::InputTag>("trackMTDTimeQualityVMapTag"));
     minTrackTimeQuality_ = conf.getParameter<double>("minTrackTimeQuality");
-    trkMTDAssocToken = consumes<edm::ValueMap<int>>(conf.getParameter<edm::InputTag>("trackAssocSrc"));
-    MTDtimeToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("tmtdSrc"));
-    sigmaMTDtimeToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("sigmatmtdSrc"));
-    pathLengthToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("pathmtd"));
-    btlMatchChi2Token = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("btlMatchChi2Src"));
-    btlMatchTime_Chi2Token = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("btlMatchTimeChi2Src"));
-    etlMatchChi2Token = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("etlMatchChi2Src"));
-    etlMatchTime_Chi2Token = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("etlMatchTimeChi2Src"));
-    trkTimePiToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("tofPi"));
-    trkTimeKToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("tofK"));
-    trkTimePToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("tofP"));
-    sigmaTrkTimePiToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("sigmatofpiSrc"));
-    sigmaTrkTimeKToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("sigmatofkSrc"));
-    sigmaTrkTimePToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("sigmatofpSrc"));
-    npixBarrelToken = consumes<edm::ValueMap<int>>(conf.getParameter<edm::InputTag>("npixBarrelSrc"));
-    npixEndcapToken = consumes<edm::ValueMap<int>>(conf.getParameter<edm::InputTag>("npixEndcapSrc"));
   }
 
   // select and configure the vertex fitters
@@ -273,26 +257,9 @@ void PrimaryVertexProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
   if (useTransientTrackTime_) {
     auto const& trackTimeResos_ = iEvent.get(trkTimeResosToken);
     auto trackTimes_ = iEvent.get(trkTimesToken);
-    auto const& trackMTDAssoc_ = iEvent.get(trkMTDAssocToken);
-    auto trackMTDTimes_ = iEvent.get(MTDtimeToken);
-    auto trackMTDTimesRes_ = iEvent.get(sigmaMTDtimeToken);
-    auto pathlength_ = iEvent.get(pathLengthToken);
-    auto btlMatch_ = iEvent.get(btlMatchChi2Token);
-    auto btlMatchTime_ = iEvent.get(btlMatchTime_Chi2Token);
-    auto etlMatch_ = iEvent.get(etlMatchChi2Token);
-    auto etlMatchTime_ = iEvent.get(etlMatchTime_Chi2Token);
-    auto trkPiTime_ = iEvent.get(trkTimePiToken);
-    auto trkKTime_ = iEvent.get(trkTimeKToken);
-    auto trkPTime_ = iEvent.get(trkTimePToken);
-    auto sigmatrkPiTime_ = iEvent.get(sigmaTrkTimePiToken);
-    auto sigmatrkKTime_ = iEvent.get(sigmaTrkTimeKToken);
-    auto sigmatrkPTime_ = iEvent.get(sigmaTrkTimePToken);
-    auto npixbarrel_ = iEvent.get(npixBarrelToken);
-    auto npixendcap_ = iEvent.get(npixEndcapToken);
-    auto trackMTDTimeQualities_ = iEvent.get(trackMTDTimeQualityToken);
 
     if (useMVASelection_) {
-      //   trackMTDTimeQualities_ = iEvent.get(trackMTDTimeQualityToken);
+      trackMTDTimeQualities_ = iEvent.get(trackMTDTimeQualityToken);
 
       for (unsigned int i = 0; i < (*tks).size(); i++) {
         const reco::TrackRef ref(tks, i);
@@ -301,50 +268,9 @@ void PrimaryVertexProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
           trackTimes_[ref] = std::numeric_limits<double>::max();
         }
       }
-      //  t_tks = (*theB).build(tks, beamSpot, trackTimes_, trackTimeResos_);
-      t_tks = (*theB).build(tks,
-                            beamSpot,
-                            trackTimes_,
-                            trackTimeResos_,
-                            trackMTDAssoc_,
-                            trackMTDTimes_,
-                            trackMTDTimesRes_,
-                            trackMTDTimeQualities_,
-                            pathlength_,
-                            btlMatch_,
-                            btlMatchTime_,
-                            etlMatch_,
-                            etlMatchTime_,
-                            trkPiTime_,
-                            trkKTime_,
-                            trkPTime_,
-                            sigmatrkPiTime_,
-                            sigmatrkKTime_,
-                            sigmatrkPTime_,
-                            npixbarrel_,
-                            npixendcap_);
+      t_tks = (*theB).build(tks, beamSpot, trackTimes_, trackTimeResos_);
     } else {
-      t_tks = (*theB).build(tks,
-                            beamSpot,
-                            trackTimes_,
-                            trackTimeResos_,
-                            trackMTDAssoc_,
-                            trackMTDTimes_,
-                            trackMTDTimesRes_,
-                            trackMTDTimeQualities_,
-                            pathlength_,
-                            btlMatch_,
-                            btlMatchTime_,
-                            etlMatch_,
-                            etlMatchTime_,
-                            trkPiTime_,
-                            trkKTime_,
-                            trkPTime_,
-                            sigmatrkPiTime_,
-                            sigmatrkKTime_,
-                            sigmatrkPTime_,
-                            npixbarrel_,
-                            npixendcap_);
+      t_tks = (*theB).build(tks, beamSpot, trackTimes_, trackTimeResos_);
     }
   } else {
     t_tks = (*theB).build(tks, beamSpot);
@@ -601,22 +527,6 @@ void PrimaryVertexProducer::fillDescriptions(edm::ConfigurationDescriptions& des
   desc.add<edm::InputTag>("TrackTimeResosLabel", edm::InputTag("dummy_default"));                         // 4D only
   desc.add<edm::InputTag>("TrackTimesLabel", edm::InputTag("dummy_default"));                             // 4D only
   desc.add<edm::InputTag>("trackMTDTimeQualityVMapTag", edm::InputTag("mtdTrackQualityMVA:mtdQualMVA"));  // 4D only
-  desc.add<edm::InputTag>("trackAssocSrc", edm::InputTag("trackExtenderWithMTD:generalTrackassoc"));
-  desc.add<edm::InputTag>("tmtdSrc", edm::InputTag("trackExtenderWithMTD:generalTracktmtd"));
-  desc.add<edm::InputTag>("sigmatmtdSrc", edm::InputTag("trackExtenderWithMTD:generalTracksigmatmtd"));
-  desc.add<edm::InputTag>("pathmtd", edm::InputTag("trackExtenderWithMTD:generalTrackPathLength"));
-  desc.add<edm::InputTag>("btlMatchChi2Src", edm::InputTag("trackExtenderWithMTD", "btlMatchChi2"));
-  desc.add<edm::InputTag>("btlMatchTimeChi2Src", edm::InputTag("trackExtenderWithMTD", "btlMatchTimeChi2"));
-  desc.add<edm::InputTag>("etlMatchChi2Src", edm::InputTag("trackExtenderWithMTD", "etlMatchChi2"));
-  desc.add<edm::InputTag>("etlMatchTimeChi2Src", edm::InputTag("trackExtenderWithMTD", "etlMatchTimeChi2"));
-  desc.add<edm::InputTag>("tofPi", edm::InputTag("trackExtenderWithMTD:generalTrackTofPi"));
-  desc.add<edm::InputTag>("tofK", edm::InputTag("trackExtenderWithMTD:generalTrackTofK"));
-  desc.add<edm::InputTag>("tofP", edm::InputTag("trackExtenderWithMTD:generalTrackTofP"));
-  desc.add<edm::InputTag>("sigmatofpiSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofPi"));
-  desc.add<edm::InputTag>("sigmatofkSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofK"));
-  desc.add<edm::InputTag>("sigmatofpSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofP"));
-  desc.add<edm::InputTag>("npixBarrelSrc", edm::InputTag("trackExtenderWithMTD", "npixBarrel"));
-  desc.add<edm::InputTag>("npixEndcapSrc", edm::InputTag("trackExtenderWithMTD", "npixEndcap"));
 
   {
     edm::ParameterSetDescription psd0;
