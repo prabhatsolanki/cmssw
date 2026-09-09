@@ -9,6 +9,7 @@
 #include "DataFormats/Common/interface/ValueMap.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "DataFormats/VertexGNNReco/interface/VertexGNNSoA.h"
 
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -63,7 +64,8 @@ GNNTrackInspector::GNNTrackInspector(const edm::ParameterSet& iConfig)
 
 void GNNTrackInspector::beginJob() {
   edm::Service<TFileService> fs;
-  h_slotAssign_ = fs->make<TH1F>("slotAssign", "GNN Slot Assignment;slot;tracks", 180, 0, 180);
+  h_slotAssign_ = fs->make<TH1F>(
+      "slotAssign", "GNN Slot Assignment;slot;tracks", vertexgnn::kNumSlots, 0, vertexgnn::kNumSlots);
   h_maxProb_ = fs->make<TH1F>("maxProb", "GNN Max Assignment Prob;prob;tracks", 100, 0.0, 1.0);
   h_piWeight0_ = fs->make<TH1F>("piWeight0", "PID Weight #pi;weight;tracks", 100, 0.0, 1.0);
   h_piWeight1_ = fs->make<TH1F>("piWeight1", "PID Weight K;weight;tracks", 100, 0.0, 1.0);
