@@ -71,13 +71,6 @@ from Configuration.Eras.Modifier_phase2_timing_layer_cff import phase2_timing_la
 phase2_timing_layer.toModify(tofPID, vtxsSrc='unsortedOfflinePrimaryVertices4D', vertexReassignment=False)
 phase2_timing_layer.toModify(tofPID3D, vertexReassignment=False)
 
-# ---------------------------------------------------------------------------
-# vertex-slot GNN primary vertices (run with the vertexSlotGNN process modifier)
-#   trackFeatureProducer   : input features of the selected tracks (CPU)
-#   gnnVertexProducer      : model inference with PyTorch through Alpaka (GPU, or CPU with the serial backend)
-#   unsortedOfflinePrimaryVerticesGNN : PrimaryVertexProducer building and fitting the vertices from the
-#                            GNN output (clustering algorithm GNN2D_alpaka)
-# ---------------------------------------------------------------------------
 trackFeatureProducer = cms.EDProducer("vertexgnn::TrackFeatureProducer",
     TkFilterParameters = unsortedOfflinePrimaryVertices.TkFilterParameters.clone()
 )

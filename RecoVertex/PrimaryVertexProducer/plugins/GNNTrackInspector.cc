@@ -64,8 +64,8 @@ GNNTrackInspector::GNNTrackInspector(const edm::ParameterSet& iConfig)
 
 void GNNTrackInspector::beginJob() {
   edm::Service<TFileService> fs;
-  h_slotAssign_ = fs->make<TH1F>(
-      "slotAssign", "GNN Slot Assignment;slot;tracks", vertexgnn::kNumSlots, 0, vertexgnn::kNumSlots);
+  h_slotAssign_ =
+      fs->make<TH1F>("slotAssign", "GNN Slot Assignment;slot;tracks", vertexgnn::kNumSlots, 0, vertexgnn::kNumSlots);
   h_maxProb_ = fs->make<TH1F>("maxProb", "GNN Max Assignment Prob;prob;tracks", 100, 0.0, 1.0);
   h_piWeight0_ = fs->make<TH1F>("piWeight0", "PID Weight #pi;weight;tracks", 100, 0.0, 1.0);
   h_piWeight1_ = fs->make<TH1F>("piWeight1", "PID Weight K;weight;tracks", 100, 0.0, 1.0);
@@ -97,8 +97,8 @@ void GNNTrackInspector::analyze(const edm::Event& iEvent, const edm::EventSetup&
 
     auto const& trk = tracks[i];
     edm::LogInfo("GNNTrackInspector") << "track[" << i << "] pt=" << trk.pt() << " eta=" << trk.eta()
-                                      << " slot=" << slot << " maxProb=" << maxP 
-                                      << " piWeights=(" << pw0 << "," << pw1 << "," << pw2 << ")";
+                                      << " slot=" << slot << " maxProb=" << maxP << " piWeights=(" << pw0 << "," << pw1
+                                      << "," << pw2 << ")";
   }
 
   auto fillIf = [&](TH1F* h, const edm::ValueMap<float>& vm, size_t i) {

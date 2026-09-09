@@ -1,6 +1,3 @@
-// Dictionary headers for GNN vertex producer SoA types (host side)
-
-// Eigen headers must come first before any SoA header
 #include <Eigen/Core>
 #include <Eigen/Dense>
 

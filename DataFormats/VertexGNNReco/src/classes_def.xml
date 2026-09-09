@@ -1,10 +1,9 @@
 <lcgdict>
-  <!-- Track Features: Input to GNN -->
+
   <class name="vertexgnn::TrackFeaturesLayout<128,false>"/>
   <class name="PortableHostCollection<vertexgnn::TrackFeaturesLayout<128,false> >"/>
   <class name="edm::Wrapper<PortableHostCollection<vertexgnn::TrackFeaturesLayout<128,false> > >" splitLevel="0"/>
 
-  <!-- GNN Output: Unified output from GNN with Eigen columns -->
   <class name="vertexgnn::GNNOutputLayout<128,false>"/>
   <class name="PortableHostCollection<vertexgnn::GNNOutputLayout<128,false> >"/>
   <class name="edm::Wrapper<PortableHostCollection<vertexgnn::GNNOutputLayout<128,false> > >" splitLevel="0"/>

@@ -2,8 +2,8 @@
 #define SequentialPrimaryVertexFitterAdapter_h
 
 /**\class SequentialPrimaryVertexFitterAdapter
- 
-  Description: Adapter class for Kalman and Adaptive vertex fitters 
+
+  Description: Adapter class for Kalman and Adaptive vertex fitters
 
 */
 
@@ -46,8 +46,6 @@ public:
 
       if (v.isValid()) {
         if (useClusterWeights_ && cluster.hasTrackWeight()) {
-          // keep the clusterizer's track weights (e.g. GNN assignment probabilities) instead of the fitter's;
-          // the fitter returns its own TransientTrack copies, so match them through the underlying reco::Track
           std::map<const reco::Track*, float> clusterWeight;
           for (const auto& kv : cluster.weightMap()) {
             clusterWeight[&(kv.first.track())] = kv.second;

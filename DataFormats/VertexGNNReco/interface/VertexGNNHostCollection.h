@@ -11,4 +11,4 @@ namespace vertexgnn {
 
 }  // namespace vertexgnn
 
-#endif  // DataFormats_VertexGNNReco_interface_VertexGNNHostCollection_h
+#endif

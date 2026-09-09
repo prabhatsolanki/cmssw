@@ -1,4 +1,3 @@
-// ROCm device dictionary headers for GNN vertex collections
 #include <Eigen/Core>
 #include <Eigen/Dense>
 

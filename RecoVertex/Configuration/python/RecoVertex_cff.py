@@ -15,11 +15,11 @@ from RecoJets.JetProducers.caloJetsForTrk_cff import *
 
 unsortedOfflinePrimaryVertices=offlinePrimaryVertices.clone()
 offlinePrimaryVertices=sortedPrimaryVertices.clone(
-    vertices="unsortedOfflinePrimaryVertices", 
+    vertices="unsortedOfflinePrimaryVertices",
     particles="trackRefsForJetsBeforeSorting"
 )
 offlinePrimaryVerticesWithBS=sortedPrimaryVertices.clone(
-    vertices="unsortedOfflinePrimaryVertices:WithBS", 
+    vertices="unsortedOfflinePrimaryVertices:WithBS",
     particles="trackRefsForJetsBeforeSorting"
 )
 trackWithVertexRefSelectorBeforeSorting = trackWithVertexRefSelector.clone(
@@ -28,7 +28,6 @@ trackWithVertexRefSelectorBeforeSorting = trackWithVertexRefSelector.clone(
     ptErrorCut=9e99
 )
 trackRefsForJetsBeforeSorting = trackRefsForJets.clone(src="trackWithVertexRefSelectorBeforeSorting")
-
 
 vertexrecoTask = cms.Task(unsortedOfflinePrimaryVertices,
                           trackWithVertexRefSelectorBeforeSorting,
@@ -89,7 +88,6 @@ phase2_timing_layer.toModify(unsortedOfflinePrimaryVertices,
                          1: dict(vertexTimeParameters = cms.PSet( algorithm = cms.string('fromTracksPID')))}
 )
 
-# vertex-slot GNN primary vertices in addition to the 3D and 4D ones (Phase-2 with timing layer)
 from RecoVertex.Configuration.RecoVertex_phase2_timing_cff import (trackFeatureProducer,
                                                                   gnnVertexProducer,
                                                                   unsortedOfflinePrimaryVerticesGNN,
@@ -108,7 +106,6 @@ _phase2_tktiming_layer_vertexSlotGNN_vertexrecoTask = cms.Task( _phase2_tktiming
                                             )
 from Configuration.ProcessModifiers.vertexSlotGNN_cff import vertexSlotGNN
 (phase2_timing_layer & vertexSlotGNN).toReplaceWith(vertexrecoTask, _phase2_tktiming_layer_vertexSlotGNN_vertexrecoTask)
-
 from Configuration.ProcessModifiers.vertex4DTrackSelMVA_cff import vertex4DTrackSelMVA
 vertex4DTrackSelMVA.toModify(unsortedOfflinePrimaryVertices4D, useMVACut = True)
 vertex4DTrackSelMVA.toModify(unsortedOfflinePrimaryVertices4DwithPID, useMVACut = True)

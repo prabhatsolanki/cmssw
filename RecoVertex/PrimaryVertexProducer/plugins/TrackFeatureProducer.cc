@@ -1,20 +1,3 @@
-/**
- * TrackFeatureProducer - input features of the vertex-slot GNN, one row per selected track
- *
- * The tracks are selected with the same TrackFilterForPVFinding (and the same parameters) as the
- * PrimaryVertexProducer that consumes the GNN output, so that row i of the feature SoA is track i of
- * the producer's selected-track list. The MTD quantities are read from the trackExtenderWithMTD and
- * mtdTrackQualityMVA ValueMaps.
- *
- * Features (SoA columns, in the order the model expects them):
- *   vz, dz (dzError), pt, eta, mva, pl (MTD path length),
- *   t_pi, t_k, t_p   : tMTD - tof(m) for the pi/K/p hypotheses (0 if no valid time)
- *   s_pi, s_k, s_p   : sigma(tof(m)) (+) sigma(tMTD) (0.2 if no valid time)
- *   has_time         : 1 if the track has an MTD MVA quality (mva >= 0), else 0
- * Missing mva / pl are -1; non-finite values are replaced by 1e9. No scaling is applied here, the
- * model normalises its inputs itself.
- */
-
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
@@ -91,7 +74,6 @@ namespace vertexgnn {
       const auto& sigmaTofK = event.get(sigmaTofKToken_);
       const auto& sigmaTofP = event.get(sigmaTofPToken_);
 
-      // same track selection as the PrimaryVertexProducer
       const auto& ttBuilder = eventSetup.getData(ttbToken_);
       const std::vector<reco::TransientTrack> selectedTracks =
           trackFilter_.select(ttBuilder.build(trackHandle, beamSpot));
@@ -110,7 +92,6 @@ namespace vertexgnn {
         if (!std::isfinite(trackPathLength))
           trackPathLength = -1.f;
 
-        // time differences and resolutions per mass hypothesis, only when the MTD time is valid
         const float tMtd = tmtd[ref];
         const float sigmaTMtd = sigmatmtd[ref];
         const bool tmtdValid = (sigmaTMtd >= 0.f);
@@ -141,13 +122,12 @@ namespace vertexgnn {
         view[i].s_pi() = sanitize(s_pi);
         view[i].s_k() = sanitize(s_k);
         view[i].s_p() = sanitize(s_p);
-        view[i].has_time() = (trackMva >= 0.f) ? 1.f : 0.f;  // as in the training: has_time = (mva_qual >= 0)
+        view[i].has_time() = (trackMva >= 0.f) ? 1.f : 0.f;
       }
       event.put(std::move(features));
     }
 
   private:
-    // resolutions added in quadrature; non-finite results become 1e9
     static float combineSigma(float sigmaTof, float sigmaTMtd) {
       const float a = std::max(sigmaTof, 0.f);
       const float b = std::max(sigmaTMtd, 0.f);

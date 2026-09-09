@@ -53,9 +53,8 @@ namespace vertexgnn {
     }
 
     if (verbose_) {
-      edm::LogPrint("GNNClusterizerFromAlpaka")
-          << "vertex-slot GNN: " << clusters.size() << " vertex candidates from " << N << " tracks and " << K
-          << " slots";
+      edm::LogPrint("GNNClusterizerFromAlpaka") << "vertex-slot GNN: " << clusters.size() << " vertex candidates from "
+                                                << N << " tracks and " << K << " slots";
     }
     return clusters;
   }

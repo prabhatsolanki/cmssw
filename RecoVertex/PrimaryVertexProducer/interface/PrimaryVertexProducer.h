@@ -110,11 +110,8 @@ private:
   edm::ValueMap<float> trackMTDTimeQualities_;
   edm::ValueMap<float> trackTimes_;
   double minTrackTimeQuality_;
-
-  // vertex-slot GNN (Alpaka backend): inference runs upstream in GNNVertexProducerAlpaka, here the
-  // clusters are built from its output SoA and the per-track outputs are stored as ValueMaps
   std::vector<TransientVertex> clustersFromGNN(edm::Event& iEvent,
-                                              const std::vector<reco::TransientTrack>& seltks) const;
+                                               const std::vector<reco::TransientTrack>& seltks) const;
   bool useAlpakaGNN_ = false;
   std::unique_ptr<vertexgnn::GNNClusterizerFromAlpaka> alpakaClusterizer_;
   edm::EDGetTokenT<vertexgnn::GNNOutputHostCollection> gnnOutputToken_;

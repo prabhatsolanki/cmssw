@@ -1,17 +1,3 @@
-"""
-vertexTask_alpaka_cfg.py - primary-vertex reconstruction with the vertex-slot GNN (Alpaka backend)
-
-Re-runs the vertex reconstruction of a Phase-2 GEN-SIM-RECO file with the vertexSlotGNN process
-modifier: 3D (offlinePrimaryVertices), 4D (offlinePrimaryVertices4D) and GNN (offlinePrimaryVerticesGNN)
-vertices plus the corresponding tofPID collections, for the 3-way MTD validation
-(mtdValidation_3way_cfg.py).
-
-Model, thresholds, input and output names are meant to be overridden by the caller, e.g.
-    from vertexTask_alpaka_cfg import *
-    process.gnnVertexProducer.model = cms.FileInPath('RecoVertex/PrimaryVertexProducer/data/vertex_slot_v17s29_alpaka.pt')
-    process.unsortedOfflinePrimaryVerticesGNN.TkClusParameters.TkDAClusParameters.existenceThreshold = cms.double(0.01)
-"""
-
 import FWCore.ParameterSet.Config as cms
 from Configuration.Eras.Era_Phase2C22I13M9_cff import Phase2C22I13M9
 from Configuration.ProcessModifiers.vertexSlotGNN_cff import vertexSlotGNN
@@ -44,11 +30,8 @@ process.options = cms.untracked.PSet(
 )
 process.MessageLogger.cerr.FwkReport.reportEvery = 10
 
-# the vertexSlotGNN modifier adds trackFeatureProducer, gnnVertexProducer, unsortedOfflinePrimaryVerticesGNN,
-# offlinePrimaryVerticesGNN and tofPIDGNN to process.vertexreco (RecoVertex.Configuration.RecoVertex_cff)
 process.exe = cms.Path(process.firstStepPrimaryVerticesUnsorted * process.vertexreco)
 
-# per-track GNN outputs (slot, probability, PID weights) as histograms
 process.TFileService = cms.Service("TFileService", fileName = cms.string("gnn_inspector.root"))
 process.gnnInspector = cms.EDAnalyzer("GNNTrackInspector",
     pvModule = cms.InputTag("unsortedOfflinePrimaryVerticesGNN", "", "REVTX"),
@@ -58,7 +41,6 @@ process.gnnInspector = cms.EDAnalyzer("GNNTrackInspector",
 )
 process.inspect_path = cms.EndPath(process.gnnInspector)
 
-# output: FEVTDEBUGHLT without the RECO-step products superseded in this process
 outputCommands = cms.untracked.vstring(list(process.FEVTDEBUGHLTEventContent.outputCommands) + [
     'drop *_offlinePrimaryVertices_*_RECO',
     'drop *_offlinePrimaryVertices4D_*_RECO',

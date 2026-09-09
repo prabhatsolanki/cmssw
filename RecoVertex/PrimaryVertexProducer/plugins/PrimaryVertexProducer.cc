@@ -15,7 +15,6 @@
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 
 #include "RecoVertex/VertexTools/interface/GeometricAnnealing.h"
-
 #include <limits>
 
 PrimaryVertexProducer::PrimaryVertexProducer(const edm::ParameterSet& conf)
@@ -52,8 +51,6 @@ PrimaryVertexProducer::PrimaryVertexProducer(const edm::ParameterSet& conf)
         conf.getParameter<edm::ParameterSet>("TkClusParameters").getParameter<edm::ParameterSet>("TkDAClusParameters"));
     useTransientTrackTime_ = true;
   } else if (clusteringAlgorithm == "GNN2D_alpaka") {
-    // vertex-slot GNN: the inference runs upstream (GNNVertexProducerAlpaka), here the clusters are
-    // built from its output SoA
     const auto& clusParams =
         conf.getParameter<edm::ParameterSet>("TkClusParameters").getParameter<edm::ParameterSet>("TkDAClusParameters");
     useAlpakaGNN_ = true;
@@ -71,16 +68,16 @@ PrimaryVertexProducer::PrimaryVertexProducer(const edm::ParameterSet& conf)
   }
 
   if (useTransientTrackTime_) {
-    trkTimesToken = consumes<edm::ValueMap<float> >(conf.getParameter<edm::InputTag>("TrackTimesLabel"));
-    trkTimeResosToken = consumes<edm::ValueMap<float> >(conf.getParameter<edm::InputTag>("TrackTimeResosLabel"));
+    trkTimesToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("TrackTimesLabel"));
+    trkTimeResosToken = consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("TrackTimeResosLabel"));
     trackMTDTimeQualityToken =
-        consumes<edm::ValueMap<float> >(conf.getParameter<edm::InputTag>("trackMTDTimeQualityVMapTag"));
+        consumes<edm::ValueMap<float>>(conf.getParameter<edm::InputTag>("trackMTDTimeQualityVMapTag"));
     minTrackTimeQuality_ = conf.getParameter<double>("minTrackTimeQuality");
   }
 
   // select and configure the vertex fitters
   std::vector<edm::ParameterSet> vertexCollections =
-      conf.getParameter<std::vector<edm::ParameterSet> >("vertexCollections");
+      conf.getParameter<std::vector<edm::ParameterSet>>("vertexCollections");
 
   for (std::vector<edm::ParameterSet>::const_iterator algoconf = vertexCollections.begin();
        algoconf != vertexCollections.end();
@@ -91,7 +88,6 @@ PrimaryVertexProducer::PrimaryVertexProducer(const edm::ParameterSet& conf)
 
     // configure the fitter and selector
     std::string fitterAlgorithm = algoconf->getParameter<std::string>("algorithm");
-    // keep the clusterizer's track weights (e.g. GNN assignment probabilities) instead of the fitter's
     const bool useClusterWeights = algoconf->getUntrackedParameter<bool>("useClusterWeights", true);
     if (fitterAlgorithm == "KalmanVertexFitter") {
       algorithm.pv_fitter = new SequentialPrimaryVertexFitterAdapter(new KalmanVertexFitter(), useClusterWeights);
@@ -382,9 +378,6 @@ void PrimaryVertexProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
 
 std::vector<TransientVertex> PrimaryVertexProducer::clustersFromGNN(
     edm::Event& iEvent, const std::vector<reco::TransientTrack>& seltks) const {
-  // The GNN output SoA has one row per track selected by the same TrackFilterForPVFinding (see
-  // TrackFeatureProducer), in the same order as seltks. Per row: A[K] assignment probabilities and
-  // pi[3] PID weights; the per-slot predictions z_hat[K], t_hat[K], p[K] are replicated on every row.
   constexpr int K = vertexgnn::kNumSlots;
   const auto& gnnOutput = iEvent.get(gnnOutputToken_);
   auto gnnView = gnnOutput.const_view();
@@ -404,7 +397,7 @@ std::vector<TransientVertex> PrimaryVertexProducer::clustersFromGNN(
       p[k] = elem.p()[k];
     }
   }
-  // per track: slot with the highest assignment probability
+
   std::vector<int> trackSlot(N, -1);
   std::vector<float> trackMaxProb(N, -1.f), pi0(N, 0.f), pi1(N, 0.f), pi2(N, 0.f);
   for (int i = 0; i < nRead; ++i) {
@@ -421,7 +414,6 @@ std::vector<TransientVertex> PrimaryVertexProducer::clustersFromGNN(
     pi2[i] = elem.pi()[2];
   }
 
-  // per-track outputs as ValueMaps on the input track collection (NaN for tracks not selected)
   const auto& trkHandle = iEvent.getHandle(trkToken);
   const size_t nAll = trkHandle->size();
   const float nan = std::numeric_limits<float>::quiet_NaN();
@@ -451,7 +443,6 @@ std::vector<TransientVertex> PrimaryVertexProducer::clustersFromGNN(
 
   return alpakaClusterizer_->vertices(seltks, trackSlot, trackMaxProb, z_hat, p);
 }
-
 void PrimaryVertexProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription psd_pv_time;
   {
@@ -540,12 +531,10 @@ void PrimaryVertexProducer::fillDescriptions(edm::ConfigurationDescriptions& des
       edm::ParameterSetDescription psd3;
       GapClusterizerInZ::fillPSetDescription(psd3);
 
-      // vertex-slot GNN (Alpaka backend): clusters from the GNNVertexProducerAlpaka output
       edm::ParameterSetDescription psd4;
       vertexgnn::GNNClusterizerFromAlpaka::fillPSetDescription(psd4);
       psd4.add<edm::InputTag>("gnnOutput", edm::InputTag("gnnVertexProducer"))
           ->setComment("GNNOutputHostCollection produced by GNNVertexProducerAlpaka");
-
       psd0.ifValue(
           edm::ParameterDescription<std::string>("algorithm", "DA_vect", true),
           "DA_vect" >> edm::ParameterDescription<edm::ParameterSetDescription>("TkDAClusParameters", psd1, true) or

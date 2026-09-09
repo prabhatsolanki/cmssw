@@ -1,34 +1,13 @@
-"""
-mtdValidation_3way_cfg.py - MTD Validation with 3D, 4D and GNN vertex comparisons
-
-Runs Primary4DVertexValidation and MtdTracksValidation for all three vertex collections
-in a single job, writing to separate DQM folders for comparison.
-
-Usage: cmsRun mtdValidation_3way_cfg.py backend=alpaka
-"""
-
 import FWCore.ParameterSet.Config as cms
-import sys
 
 from Configuration.Eras.Era_Phase2C22I13M9_cff import Phase2C22I13M9
 process = cms.Process('mtdValidation', Phase2C22I13M9)
 
-# ============================================================================
-# Parse command line for backend selection
-# ============================================================================
-backend = "alpaka"  # default
-for arg in sys.argv[1:]:
-    if arg.startswith("backend="):
-        backend = arg.split("=")[1].lower()
-
-if backend not in ["onnx", "alpaka"]:
-    raise ValueError(f"Unknown backend: {backend}. Use 'onnx' or 'alpaka'")
-
-input_file = f"file:revtx_step3_{backend}_v17s7.root"
-output_file = f"file:mtdValidation_3way_{backend}_v17s7.root"
+input_file = "file:revtx_step3_alpaka.root"
+output_file = "file:mtdValidation_3way.root"
 
 print("=" * 60)
-print(f"MTD 3-Way Validation (3D + 4D + GNN) - Backend: {backend.upper()}")
+print("MTD 3-way validation (3D + 4D + GNN)")
 print(f"Input:  {input_file}")
 print(f"Output: {output_file}")
 print("=" * 60)
@@ -49,7 +28,6 @@ process.load("Configuration.StandardSequences.Reconstruction_cff")
 
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 
-# Multi-threaded
 process.options.numberOfThreads = 1
 process.options.numberOfStreams = 0
 process.options.numberOfConcurrentLuminosityBlocks = 0
@@ -59,7 +37,6 @@ process.MessageLogger.cerr.FwkReport = cms.untracked.PSet(
     reportEvery = cms.untracked.int32(10),
 )
 
-# Input
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(input_file)
 )
@@ -67,9 +44,6 @@ process.source = cms.Source("PoolSource",
 process.mix.digitizers = cms.PSet()
 for a in process.aliases: delattr(process, a)
 
-# ============================================================================
-# BTL/ETL Validation (shared, run once)
-# ============================================================================
 process.load("Validation.MtdValidation.btlSimHitsValid_cfi")
 process.load("Validation.MtdValidation.btlDigiHitsValid_cfi")
 process.load("Validation.MtdValidation.btlLocalRecoValid_cfi")
@@ -82,17 +56,9 @@ etlValidation = cms.Sequence(process.etlSimHitsValid + process.etlDigiHitsValid 
 
 process.load("Validation.MtdValidation.mtdEleIsoValid_cfi")
 
-# ============================================================================
-# Load base modules (we'll clone from these)
-# ============================================================================
 process.load("Validation.MtdValidation.mtdTracksValid_cfi")
 process.load("Validation.MtdValidation.vertices4DValid_cfi")
 
-# ============================================================================
-# 3D Vertex Validation
-# Uses: offlinePrimaryVertices (3D, no timing)
-# tofPID: tofPID3D (3D PID)
-# ============================================================================
 process.vertices3DValid = process.vertices4DValid.clone(
     folder = cms.string('MTD/Vertices/3D/'),
     offline4DPV = 'offlinePrimaryVertices',
@@ -114,11 +80,6 @@ process.mtdTracks3DValid = process.mtdTracksValid.clone(
     sigmat0PID = 'tofPID3D:sigmat0',
 )
 
-# ============================================================================
-# 4D Vertex Validation
-# Uses: offlinePrimaryVertices4D (4D, with timing)
-# tofPID: tofPID (default 4D PID)
-# ============================================================================
 process.vertices4DValid.folder = cms.string('MTD/Vertices/4D/')
 process.vertices4DValid.offline4DPV = 'offlinePrimaryVertices4D'
 process.vertices4DValid.t0PID = 'tofPID:t0'
@@ -136,11 +97,6 @@ process.mtdTracksValid.t0SafePID = 'tofPID:t0safe'
 process.mtdTracksValid.sigmat0SafePID = 'tofPID:sigmat0safe'
 process.mtdTracksValid.sigmat0PID = 'tofPID:sigmat0'
 
-# ============================================================================
-# GNN Vertex Validation
-# Uses: offlinePrimaryVerticesGNN (GNN)
-# tofPID: tofPIDGNN
-# ============================================================================
 process.verticesGNNValid = process.vertices4DValid.clone(
     folder = cms.string('MTD/Vertices/GNN/'),
     offline4DPV = 'offlinePrimaryVerticesGNN',
@@ -150,7 +106,7 @@ process.verticesGNNValid = process.vertices4DValid.clone(
     probPi = 'unsortedOfflinePrimaryVerticesGNN:gnnPiWeight0',
     probK = 'unsortedOfflinePrimaryVerticesGNN:gnnPiWeight1',
     probP = 'unsortedOfflinePrimaryVerticesGNN:gnnPiWeight2',
-    trackweightTh = 0.0,  # match producer's trackAssignmentThreshold = 0.0
+    trackweightTh = 0.0,
     optionalPlots = True,
 )
 
@@ -163,22 +119,19 @@ process.mtdTracksGNNValid = process.mtdTracksValid.clone(
     sigmat0PID = 'tofPIDGNN:sigmat0',
 )
 
-# ============================================================================
-# Sequences
-# ============================================================================
 process.validation = cms.Sequence(
     btlValidation +
     etlValidation +
-    # 3D
+
     process.vertices3DValid +
     process.mtdTracks3DValid +
-    # 4D
+
     process.mtdTracksValid +
     process.vertices4DValid +
-    # GNN
+
     process.verticesGNNValid +
     process.mtdTracksGNNValid +
-    # Shared
+
     process.mtdEleIsoValid
 )
 
