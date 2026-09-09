@@ -52,7 +52,6 @@ from RecoVertex.Configuration.RecoVertex_phase2_timing_cff import (tpClusterProd
                                                                   tofPID3D,
                                                                   tofPID4DnoPID,
                                                                   tofPIDGNN,
-                                                                  #tofPIDMC,
                                                                   unsortedOfflinePrimaryVertices4D,
                                                                   trackWithVertexRefSelectorBeforeSorting4D,
                                                                   trackRefsForJetsBeforeSorting4D,
@@ -83,7 +82,6 @@ _phase2_tktiming_layer_vertexrecoTask = cms.Task( _phase2_tktiming_vertexrecoTas
                                             tofPID,
                                             tofPID4DnoPID,
                                             tofPIDGNN,
-                                            #tofPIDMC,
                                             )
 
 from Configuration.Eras.Modifier_phase2_timing_cff import phase2_timing

@@ -102,9 +102,7 @@ from SimTracker.TrackerHitAssociation.tpClusterProducer_cfi import tpClusterProd
 from SimTracker.TrackAssociatorProducers.quickTrackAssociatorByHits_cfi import quickTrackAssociatorByHits
 from SimTracker.TrackAssociation.trackTimeValueMapProducer_cfi import trackTimeValueMapProducer
 from RecoMTD.TimingIDTools.tofPIDProducer_cfi import tofPIDProducer
-from RecoMTD.TimingIDTools.tofPIDProducerMCTruth_cfi import tofPIDProducerMCTruth
 
-#tofPIDMC=tofPIDProducerMCTruth.clone()
 tofPID4DnoPID=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVertices')
 tofPID=tofPIDProducer.clone()
 tofPID3D=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVertices')
