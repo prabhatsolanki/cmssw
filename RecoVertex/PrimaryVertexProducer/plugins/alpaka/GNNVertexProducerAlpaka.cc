@@ -48,8 +48,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE::vertexgnn {
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
       edm::ParameterSetDescription desc;
       desc.add<edm::FileInPath>("model", 
-          edm::FileInPath("RecoVertex/PrimaryVertexProducer/data/dummy_vertex_slot.pt"));
-      desc.add<edm::InputTag>("trackFeatures", edm::InputTag("trackFeatureSource"));
+          edm::FileInPath("RecoVertex/PrimaryVertexProducer/data/vertex_slot_v17s29_alpaka.pt"));
+      desc.add<edm::InputTag>("trackFeatures", edm::InputTag("trackFeatureProducer"));
       desc.addUntracked<bool>("verbose", false);
       descriptions.addWithDefaultLabel(desc);
     }

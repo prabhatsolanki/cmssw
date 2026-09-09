@@ -58,14 +58,32 @@ offlinePrimaryVertices4DwithPIDWithBS = offlinePrimaryVertices4DwithPID.clone(
     vertices = "unsortedOfflinePrimaryVertices4DwithPID:WithBS"
 )
 
+from SimTracker.TrackerHitAssociation.tpClusterProducer_cfi import tpClusterProducer
+from SimTracker.TrackAssociatorProducers.quickTrackAssociatorByHits_cfi import quickTrackAssociatorByHits
+from SimTracker.TrackAssociation.trackTimeValueMapProducer_cfi import trackTimeValueMapProducer
+from RecoMTD.TimingIDTools.tofPIDProducer_cfi import tofPIDProducer
 
-# vertex-slot GNN: track features (CPU) -> model inference (Alpaka) -> clustering in the PrimaryVertexProducer
+tofPID4DnoPID=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVertices')
+tofPID=tofPIDProducer.clone()
+tofPID3D=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVertices')
+
+from Configuration.Eras.Modifier_phase2_timing_layer_cff import phase2_timing_layer
+phase2_timing_layer.toModify(tofPID, vtxsSrc='unsortedOfflinePrimaryVertices4D', vertexReassignment=False)
+phase2_timing_layer.toModify(tofPID3D, vertexReassignment=False)
+
+# ---------------------------------------------------------------------------
+# vertex-slot GNN primary vertices (run with the vertexSlotGNN process modifier)
+#   trackFeatureProducer   : input features of the selected tracks (CPU)
+#   gnnVertexProducer      : model inference with PyTorch through Alpaka (GPU, or CPU with the serial backend)
+#   unsortedOfflinePrimaryVerticesGNN : PrimaryVertexProducer building and fitting the vertices from the
+#                            GNN output (clustering algorithm GNN2D_alpaka)
+# ---------------------------------------------------------------------------
 trackFeatureProducer = cms.EDProducer("vertexgnn::TrackFeatureProducer",
     TkFilterParameters = unsortedOfflinePrimaryVertices.TkFilterParameters.clone()
 )
 gnnVertexProducer = cms.EDProducer("vertexgnn::GNNVertexProducerAlpaka@alpaka",
     trackFeatures = cms.InputTag("trackFeatureProducer"),
-    model = cms.FileInPath("RecoVertex/PrimaryVertexProducer/test/vertex_slot_v17s29_alpaka.pt"),
+    model = cms.FileInPath("RecoVertex/PrimaryVertexProducer/data/vertex_slot_v17s29_alpaka.pt"),
 )
 unsortedOfflinePrimaryVerticesGNN = unsortedOfflinePrimaryVertices4D.clone(
     TkClusParameters = cms.PSet(algorithm = cms.string("GNN2D_alpaka"),
@@ -95,19 +113,5 @@ offlinePrimaryVerticesGNN = sortedPrimaryVertices.clone(
     trackTimeResoTag = "tofPID4DnoPID:sigmat0safe",
     assignment = dict(useTiming = True)
 )
-
-
-from SimTracker.TrackerHitAssociation.tpClusterProducer_cfi import tpClusterProducer
-from SimTracker.TrackAssociatorProducers.quickTrackAssociatorByHits_cfi import quickTrackAssociatorByHits
-from SimTracker.TrackAssociation.trackTimeValueMapProducer_cfi import trackTimeValueMapProducer
-from RecoMTD.TimingIDTools.tofPIDProducer_cfi import tofPIDProducer
-
-tofPID4DnoPID=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVertices')
-tofPID=tofPIDProducer.clone()
-tofPID3D=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVertices')
-tofPIDGNN=tofPIDProducer.clone(vtxsSrc='unsortedOfflinePrimaryVerticesGNN')
-
-from Configuration.Eras.Modifier_phase2_timing_layer_cff import phase2_timing_layer
-phase2_timing_layer.toModify(tofPID, vtxsSrc='unsortedOfflinePrimaryVertices4D', vertexReassignment=False)
-phase2_timing_layer.toModify(tofPID3D, vertexReassignment=False)
-phase2_timing_layer.toModify(tofPIDGNN, vertexReassignment=False)
+tofPIDGNN = tofPIDProducer.clone(vtxsSrc = 'unsortedOfflinePrimaryVerticesGNN')
+phase2_timing_layer.toModify(tofPIDGNN, vertexReassignment = False)

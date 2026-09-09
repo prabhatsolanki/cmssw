@@ -51,20 +51,11 @@ from RecoVertex.Configuration.RecoVertex_phase2_timing_cff import (tpClusterProd
                                                                   tofPID,
                                                                   tofPID3D,
                                                                   tofPID4DnoPID,
-                                                                  tofPIDGNN,
                                                                   unsortedOfflinePrimaryVertices4D,
                                                                   trackWithVertexRefSelectorBeforeSorting4D,
                                                                   trackRefsForJetsBeforeSorting4D,
                                                                   offlinePrimaryVertices4D,
-                                                                  offlinePrimaryVertices4DWithBS,
-                                                                  trackFeatureProducer,
-                                                                  gnnVertexProducer,
-                                                                  trackFeatureProducer,
-                                            gnnVertexProducer,
-                                            unsortedOfflinePrimaryVerticesGNN,
-                                                                  trackWithVertexRefSelectorBeforeSortingGNN,
-                                                                  trackRefsForJetsBeforeSortingGNN,
-                                                                  offlinePrimaryVerticesGNN)
+                                                                  offlinePrimaryVertices4DWithBS)
 
 _phase2_tktiming_vertexrecoTask = cms.Task( vertexrecoTask.copy() ,
                                             tpClusterProducer ,
@@ -75,17 +66,12 @@ _phase2_tktiming_vertexrecoTask = cms.Task( vertexrecoTask.copy() ,
                                             trackRefsForJetsBeforeSorting4D,
                                             offlinePrimaryVertices4D,
                                             offlinePrimaryVertices4DWithBS,
-                                            unsortedOfflinePrimaryVerticesGNN,
-                                            trackWithVertexRefSelectorBeforeSortingGNN,
-                                            trackRefsForJetsBeforeSortingGNN,
-                                            offlinePrimaryVerticesGNN,
                                             )
 
 _phase2_tktiming_layer_vertexrecoTask = cms.Task( _phase2_tktiming_vertexrecoTask.copy() ,
                                             tofPID3D,
                                             tofPID,
                                             tofPID4DnoPID,
-                                            tofPIDGNN,
                                             )
 
 from Configuration.Eras.Modifier_phase2_timing_cff import phase2_timing
@@ -102,6 +88,26 @@ phase2_timing_layer.toModify(unsortedOfflinePrimaryVertices,
     vertexCollections = {0: dict(vertexTimeParameters = cms.PSet( algorithm = cms.string('fromTracksPID'))),
                          1: dict(vertexTimeParameters = cms.PSet( algorithm = cms.string('fromTracksPID')))}
 )
+
+# vertex-slot GNN primary vertices in addition to the 3D and 4D ones (Phase-2 with timing layer)
+from RecoVertex.Configuration.RecoVertex_phase2_timing_cff import (trackFeatureProducer,
+                                                                  gnnVertexProducer,
+                                                                  unsortedOfflinePrimaryVerticesGNN,
+                                                                  trackWithVertexRefSelectorBeforeSortingGNN,
+                                                                  trackRefsForJetsBeforeSortingGNN,
+                                                                  offlinePrimaryVerticesGNN,
+                                                                  tofPIDGNN)
+_phase2_tktiming_layer_vertexSlotGNN_vertexrecoTask = cms.Task( _phase2_tktiming_layer_vertexrecoTask.copy(),
+                                            trackFeatureProducer,
+                                            gnnVertexProducer,
+                                            unsortedOfflinePrimaryVerticesGNN,
+                                            trackWithVertexRefSelectorBeforeSortingGNN,
+                                            trackRefsForJetsBeforeSortingGNN,
+                                            offlinePrimaryVerticesGNN,
+                                            tofPIDGNN,
+                                            )
+from Configuration.ProcessModifiers.vertexSlotGNN_cff import vertexSlotGNN
+(phase2_timing_layer & vertexSlotGNN).toReplaceWith(vertexrecoTask, _phase2_tktiming_layer_vertexSlotGNN_vertexrecoTask)
 
 from Configuration.ProcessModifiers.vertex4DTrackSelMVA_cff import vertex4DTrackSelMVA
 vertex4DTrackSelMVA.toModify(unsortedOfflinePrimaryVertices4D, useMVACut = True)
